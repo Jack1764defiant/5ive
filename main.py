@@ -16,6 +16,7 @@ class Main:
         #Is the game over?
         self.gameOver = False
         self.MAXFPS = 20
+        self.clicks = []
 
     #This is the main function that controls everything else. A while loop runs continously in it to update the game
     def Run(self):
@@ -36,40 +37,75 @@ class Main:
                 self.isGameRunning = False
                 # When the mouse is clicked
             elif e.type == p.MOUSEBUTTONDOWN:
-                if not self.gameOver and (
-                        (self.player1Turn and self.hasPlayer1) or (self.hasPlayer2 and not self.player1Turn)):
+                if not self.gameOver and ((self.player1Turn and self.hasPlayer1) or (self.hasPlayer2 and not self.player1Turn)):
                     location = p.mouse.get_pos()
-                    # Get the vertical mouse location and convert it to a slot position
-                    row = (location[1] // self.UI.SLOTSIZE) - 2
-                    # if it is in player 1's storage
-                if (row < 2):
-                    # Compensate for the slots in storage being centered differently
-                    col = ((location[0] + (self.UI.SLOTSIZE // 2)) // self.UI.SLOTSIZE) - 1
-                    row = (location[1] // self.UI.SLOTSIZE)
-                    # if it is in player 2's storage
-                elif (row > 11):
-                    # Compensate for the slots in storage being centered differently
-                    col = ((location[0] + (self.UI.SLOTSIZE // 2)) // self.UI.SLOTSIZE) - 1
-                    row = (location[1] // self.UI.SLOTSIZE)
-                else:
-                    # The click is on the main board
-                    col = location[0] // self.UI.SLOTSIZE
-                    row = (location[1] // self.UI.SLOTSIZE) - 2
+                    if (len(self.clicks) == 0):
+                        # Get the vertical mouse location and convert it to a slot position
+                        row = (location[1] // self.UI.SLOTSIZE) - 2
+                        # if it is in player 1's storage
+                        if (row < 2):
+                            # Compensate for the slots in storage being centered differently
+                            col = ((location[0] + (self.UI.SLOTSIZE // 2)) // self.UI.SLOTSIZE) - 1
+                            row = (location[1] // self.UI.SLOTSIZE)
+                            self.clicks.append((row, col))
+                            if (row < 1):
+                                self.clicks.append(self.game.player1PegStorage)
+                            else:
+                                self.clicks.append(self.game.player1CylinderStorage)
+                            # if it is in player 2's storage
+                        elif (row > 9):
+                            # Compensate for the slots in storage being centered differently
+                            col = ((location[0] + (self.UI.SLOTSIZE // 2)) // self.UI.SLOTSIZE) - 1
+                            row = (location[1] // self.UI.SLOTSIZE)
+                            self.clicks.append((row, col))
+                            if (row > 10):
+                                self.clicks.append(self.game.player2CylinderStorage)
+                            else:
+                                self.clicks.append(self.game.player2PegStorage)
+
+                        else:
+                            # The click is on the main board
+                            col = location[0] // self.UI.SLOTSIZE
+                            row = (location[1] // self.UI.SLOTSIZE) - 2
+                            self.clicks.append((row, col))
+                            #if (self.game)
+                    else:
+                        # Get the vertical mouse location and convert it to a slot position
+                        row = (location[1] // self.UI.SLOTSIZE) - 2
+                        # if it is in player 1's storage
+                    if (row < 2):
+                        # Compensate for the slots in storage being centered differently
+                        col = ((location[0] + (self.UI.SLOTSIZE // 2)) // self.UI.SLOTSIZE) - 1
+                        row = (location[1] // self.UI.SLOTSIZE)
+                        # if it is in player 2's storage
+                    elif (row > 11):
+                        # Compensate for the slots in storage being centered differently
+                        col = ((location[0] + (self.UI.SLOTSIZE // 2)) // self.UI.SLOTSIZE) - 1
+                        row = (location[1] // self.UI.SLOTSIZE)
+                    else:
+                        # The click is on the main board
+                        col = location[0] // self.UI.SLOTSIZE
+                        row = (location[1] // self.UI.SLOTSIZE) - 2
+                        #self.game.MakeMove(self.clicks[1], self.clicks[0], (row, col)))
+
+                    self.clicks = []
+
 
             elif e.type == p.KEYDOWN:
                 # Undo a move when z is pressed
                 if e.key == p.K_z:
-                    self.game.undoMove()
+                    self.game.UndoMove()
                 # Restart game when r is pressed
                 elif e.key == p.K_r:
-                    self.game.EndGame()
+                    pass
+
 
 
 #Handles drawing the UI
 class UI:
     def __init__(self):
         #The sizes of the board and pieces
-        self.BOARDWIDTH = 360
+        self.BOARDWIDTH = 620
         self.BOARDHEIGHT = 440
         self.SLOTSIZE = 40
         self.PEGSIZE = 20
@@ -80,6 +116,12 @@ class UI:
     def drawGameScreen(self, game):
         self.drawBoard()
         self.drawPieces(game)
+        self.drawPanel()
+
+    #Draws the panel containing the back button and a list of makeable patterns
+    def drawPanel(self):
+        pass
+        
 
     #Draws the board on the screen
     def drawBoard(self):
@@ -98,26 +140,87 @@ class UI:
             for c in range(8):
                 p.draw.circle(self.screen, color, ((c * self.SLOTSIZE) + self.SLOTSIZE, (r * self.SLOTSIZE) + self.SLOTSIZE / 2 + self.SLOTSIZE * 9),self.SLOTSIZE / 2)
         # Draw the lines separating storage the main board
-        p.draw.rect(self.screen, p.Color("black"), p.Rect(0, self.SLOTSIZE * 2, self.BOARDWIDTH, 1))
-        p.draw.rect(self.screen, p.Color("black"), p.Rect(0, self.SLOTSIZE * 9, self.BOARDWIDTH, 1))
+        p.draw.rect(self.screen, p.Color("black"), p.Rect(0, self.SLOTSIZE * 2, 360, 1))
+        p.draw.rect(self.screen, p.Color("black"), p.Rect(0, self.SLOTSIZE * 9, 360, 1))
+
 
     #Draws the pieces to the screen
     def drawPieces(self, game):
-        pass
+        # Draw yellow's storage
+        for r in range(2):
+            for c in range(8):
+                # Draw cylinders
+                if (r == 1):
+                    # Draw full cylinders
+                    if (game.player1CylinderStorage[c][1] == "c"):
+                        p.draw.circle(self.screen, p.Color("yellow"),((c * self.SLOTSIZE) + self.SLOTSIZE, (r * self.SLOTSIZE) + self.SLOTSIZE / 2),self.SLOTSIZE / 2)
+                    # Draw hollow cylinders
+                    elif game.player1CylinderStorage[c][1] == "h":
+                        p.draw.circle(self.screen, p.Color("yellow"),((c * self.SLOTSIZE) + self.SLOTSIZE, (r * self.SLOTSIZE) + self.SLOTSIZE / 2),self.SLOTSIZE / 2)
+                        p.draw.circle(self.screen, p.Color("grey"),((c * self.SLOTSIZE) + self.SLOTSIZE, (r * self.SLOTSIZE) + self.SLOTSIZE / 2),self.PEGSIZE / 2)
+                # Draw pegs
+                elif (r == 0):
+                    if (game.player1PegStorage[c] != "--"):
+                        p.draw.circle(self.screen, p.Color("yellow"),((c * self.SLOTSIZE) + self.SLOTSIZE, (r * self.SLOTSIZE) + self.SLOTSIZE / 2),self.PEGSIZE / 2)
+        # Draw main board
+        for r in range(self.amountOfSlots):
+            for c in range(self.amountOfSlots):
+                # if the piece is red
+                #Draw peg
+                if game.pegBoard[r][c] == "rp":
+                    p.draw.circle(self.screen, p.Color("red"), ((c * self.SLOTSIZE) + self.SLOTSIZE*1.5, (r * self.SLOTSIZE) + 5 * self.SLOTSIZE / 2),self.PEGSIZE / 2)
+                # Draw cylinders
+                # Draw full cylinder
+                elif game.cylinderBoard[r][c] == "rc":
+                    p.draw.circle(self.screen, p.Color("red"), ((c * self.SLOTSIZE) + self.SLOTSIZE*1.5, (r * self.SLOTSIZE) + 5 * self.SLOTSIZE / 2),self.SLOTSIZE / 2)
+                # Draw hollow cylinder
+                elif game.cylinderBoard[r][c] == "rh":
+                    p.draw.circle(self.screen, p.Color("red"), ((c * self.SLOTSIZE) + self.SLOTSIZE*1.5, (r * self.SLOTSIZE) + 5 * self.SLOTSIZE / 2),self.SLOTSIZE / 2)
+                    p.draw.circle(self.screen, p.Color("grey"), ((c * self.SLOTSIZE) + self.SLOTSIZE*1.5, (r * self.SLOTSIZE) + 5 * self.SLOTSIZE / 2),self.PEGSIZE / 2)
+                # if the piece is yellow
+                # Draw cylinders
+                # Draw full cylinder
+                if game.cylinderBoard[r][c] == "yc":
+                    p.draw.circle(self.screen, p.Color("yellow"), ((c * self.SLOTSIZE) + self.SLOTSIZE*1.5, (r * self.SLOTSIZE) + 5 * self.SLOTSIZE / 2), self.SLOTSIZE / 2)
+                # Draw hollow cylinder
+                elif game.cylinderBoard[r][c] == "yh":
+                    p.draw.circle(self.screen, p.Color("yellow"), ((c * self.SLOTSIZE) + self.SLOTSIZE*1.5, (r * self.SLOTSIZE) + 5 * self.SLOTSIZE / 2),self.SLOTSIZE / 2)
+                    p.draw.circle(self.screen, p.Color("grey"), ((c * self.SLOTSIZE) + self.SLOTSIZE*1.5, (r * self.SLOTSIZE) + 5 * self.SLOTSIZE / 2),self.PEGSIZE / 2)
+                # Draw pegs
+                elif game.pegBoard[r][c] == "yp":
+                    p.draw.circle(self.screen, p.Color("yellow"), ((c * self.SLOTSIZE) + self.SLOTSIZE*1.5, (r * self.SLOTSIZE) + 5 * (self.SLOTSIZE / 2)),self.PEGSIZE / 2)
+
+        # draw red's storage
+        for r in range(2):
+            for c in range(8):
+                # Draw pegs
+                if (r == 0):
+                    if (game.player2PegStorage[c] != "--"):
+                        p.draw.circle(self.screen, p.Color("red"), ((c * self.SLOTSIZE) + self.SLOTSIZE,(r * self.SLOTSIZE) + self.SLOTSIZE / 2 + (self.SLOTSIZE * 10)), self.PEGSIZE / 2)
+                # Draw cylinders
+                elif (r == 1):
+                    # Draw full cylinders
+                    if (game.player2CylinderStorage[c][1] == "c"):
+                        p.draw.circle(self.screen, p.Color("red"), ((c * self.SLOTSIZE) + self.SLOTSIZE,(r * self.SLOTSIZE) + self.SLOTSIZE / 2 + (self.SLOTSIZE * 8)), self.SLOTSIZE / 2)
+                    # Draw hollow cylinders
+                    elif game.player2CylinderStorage[c][1] == "h":
+                        p.draw.circle(self.screen, p.Color("red"), ((c * self.SLOTSIZE) + self.SLOTSIZE,(r * self.SLOTSIZE) + self.SLOTSIZE / 2 + (self.SLOTSIZE * 8)), self.SLOTSIZE / 2)
+                        p.draw.circle(self.screen, p.Color("grey"), ((c * self.SLOTSIZE) + self.SLOTSIZE,(r * self.SLOTSIZE) + self.SLOTSIZE / 2 + (self.SLOTSIZE * 8)), self.PEGSIZE / 2)
+
     #Draws the intro screen - the title and buttons
-    def DrawIntroScreen(self, win):
+    def drawIntroScreen(self):
         pass
 
     #Draws the You Win text to the screen
-    def DrawWinScreen(self, win):
+    def drawWinScreen(self):
         pass
 
     #Draws the You Lose text to the screen
-    def DrawLoseScreen(self, win):
+    def drawLoseScreen(self):
         pass
 
     #Draws the help screen, with the instructions about how to play the game
-    def DrawInstructionScreen(self, win):
+    def drawInstructionScreen(self):
         pass
 
 #Represents a clickable, rectangular button with a text overlay
