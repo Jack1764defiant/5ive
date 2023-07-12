@@ -120,8 +120,69 @@ class UI:
 
     #Draws the panel containing the back button and a list of makeable patterns
     def drawPanel(self):
-        pass
-        
+        #Draw the panel
+        p.draw.rect(self.screen, p.Color("gray"), p.Rect(370, 10, 240, 420))
+        #Draw the title of the panel
+        font = p.font.SysFont("comicsans", 40)
+        text = font.render("Patterns:", 1, (255, 255, 255))
+        self.screen.blit(text, (490 - round(text.get_width() / 2), 20))
+
+        #Draw the patterns
+        #Pattern 1
+        #Draw the background
+        p.draw.rect(self.screen, p.Color("white"), p.Rect(380, 100, 220, 40))
+        #Draw the pattern
+        p.draw.circle(self.screen, p.Color("grey"), (410, 120), self.SLOTSIZE / 2)
+        p.draw.circle(self.screen, p.Color("red"), (410, 120), self.PEGSIZE / 2)
+
+        p.draw.circle(self.screen, p.Color("red"), (450, 120), self.SLOTSIZE / 2)
+
+        p.draw.circle(self.screen, p.Color("grey"), (490, 120), self.SLOTSIZE / 2)
+        p.draw.circle(self.screen, p.Color("red"), (490, 120), self.PEGSIZE / 2)
+
+        p.draw.circle(self.screen, p.Color("red"), (530, 120), self.SLOTSIZE / 2)
+
+        p.draw.circle(self.screen, p.Color("grey"), (570, 120), self.SLOTSIZE / 2)
+        p.draw.circle(self.screen, p.Color("red"), (570, 120), self.PEGSIZE / 2)
+
+        # Pattern 2
+        # Draw the background
+        p.draw.rect(self.screen, p.Color("white"), p.Rect(380, 180, 220, 40))
+        # Draw the pattern
+        p.draw.circle(self.screen, p.Color("grey"), (410, 200), self.SLOTSIZE / 2)
+        p.draw.circle(self.screen, p.Color("red"), (410, 200), self.PEGSIZE / 2)
+
+        p.draw.circle(self.screen, p.Color("red"), (450, 200), self.SLOTSIZE / 2)
+
+        p.draw.circle(self.screen, p.Color("red"), (490, 200), self.SLOTSIZE / 2)
+
+        p.draw.circle(self.screen, p.Color("red"), (530, 200), self.SLOTSIZE / 2)
+
+        p.draw.circle(self.screen, p.Color("grey"), (570, 200), self.SLOTSIZE / 2)
+        p.draw.circle(self.screen, p.Color("red"), (570, 200), self.PEGSIZE / 2)
+
+        # Pattern 2
+        # Draw the background
+        p.draw.rect(self.screen, p.Color("white"), p.Rect(380, 260, 220, 40))
+        # Draw the pattern
+        p.draw.circle(self.screen, p.Color("grey"), (410, 280), self.SLOTSIZE / 2)
+        p.draw.circle(self.screen, p.Color("red"), (410, 280), self.PEGSIZE / 2)
+
+        p.draw.circle(self.screen, p.Color("grey"), (450, 280), self.SLOTSIZE / 2)
+        p.draw.circle(self.screen, p.Color("red"), (450, 280), self.PEGSIZE / 2)
+
+        p.draw.circle(self.screen, p.Color("red"), (490, 280), self.SLOTSIZE / 2)
+
+        p.draw.circle(self.screen, p.Color("grey"), (530, 280), self.SLOTSIZE / 2)
+        p.draw.circle(self.screen, p.Color("red"), (530, 280), self.PEGSIZE / 2)
+
+        p.draw.circle(self.screen, p.Color("grey"), (570, 280), self.SLOTSIZE / 2)
+        p.draw.circle(self.screen, p.Color("red"), (570, 280), self.PEGSIZE / 2)
+
+
+        #Generate and draw the button
+        self.exitButton = Button("Quit", 380, 350, p.Color("Blue"), self.screen, "Return to the main menu", self.drawIntroScreen, height=70, width=220)
+        self.exitButton.draw()
 
     #Draws the board on the screen
     def drawBoard(self):
