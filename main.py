@@ -1,6 +1,6 @@
 from AI import AI
-from Game import Game
-import pygame
+import Game as g
+import pygame as p
 import time
 
 
@@ -8,40 +8,102 @@ class Main:
     def __init__(self):
         self.isGameRunning = True
         #Is player 1 human or a bot?
-        self.player1Human = True
+        self.hasPlayer1 = True
         # Is player 2 human or a bot?
-        self.player2Human = True
+        self.hasPlayer2 = True
         # Is it player 1s turn?
         self.player1Turn = True
+        #Is the game over?
+        self.gameOver = False
+        self.MAXFPS = 20
 
     #This is the main function that controls everything else. A while loop runs continously in it to update the game
     def Run(self):
+        p.init()
+        clock = p.time.Clock()
+        self.game = g.Game()
+        self.UI = UI()
         while self.isGameRunning:
-            pass
+            self.handleInputEvents()
+            self.UI.drawGameScreen(self.game)
+            clock.tick(self.MAXFPS)
+            p.display.flip()
+
+    def handleInputEvents(self):
+        for e in p.event.get():
+            # Exit when they try to quit
+            if e.type == p.QUIT:
+                self.isGameRunning = False
+                # When the mouse is clicked
+            elif e.type == p.MOUSEBUTTONDOWN:
+                if not self.gameOver and (
+                        (self.player1Turn and self.hasPlayer1) or (self.hasPlayer2 and not self.player1Turn)):
+                    location = p.mouse.get_pos()
+                    # Get the vertical mouse location and convert it to a slot position
+                    row = (location[1] // self.UI.SLOTSIZE) - 2
+                    # if it is in player 1's storage
+                if (row < 2):
+                    # Compensate for the slots in storage being centered differently
+                    col = ((location[0] + (self.UI.SLOTSIZE // 2)) // self.UI.SLOTSIZE) - 1
+                    row = (location[1] // self.UI.SLOTSIZE)
+                    # if it is in player 2's storage
+                elif (row > 11):
+                    # Compensate for the slots in storage being centered differently
+                    col = ((location[0] + (self.UI.SLOTSIZE // 2)) // self.UI.SLOTSIZE) - 1
+                    row = (location[1] // self.UI.SLOTSIZE)
+                else:
+                    # The click is on the main board
+                    col = location[0] // self.UI.SLOTSIZE
+                    row = (location[1] // self.UI.SLOTSIZE) - 2
+
+            elif e.type == p.KEYDOWN:
+                # Undo a move when z is pressed
+                if e.key == p.K_z:
+                    self.game.undoMove()
+                # Restart game when r is pressed
+                elif e.key == p.K_r:
+                    self.game.EndGame()
+
 
 #Handles drawing the UI
 class UI:
     def __init__(self):
         #The sizes of the board and pieces
-        self.boardWidth = 800
-        self.boardHeight = 1600
-        self.slotSize = 50
-        self.pegSize = 25
+        self.BOARDWIDTH = 360
+        self.BOARDHEIGHT = 440
+        self.SLOTSIZE = 40
+        self.PEGSIZE = 20
         self.amountOfSlots = 7
+        self.screen = p.display.set_mode((self.BOARDWIDTH, self.BOARDHEIGHT))
 
     #Draws the game screen - the board and pieces
-    def DrawGameScreen(self, win, game):
-        self.DrawBoard(win)
-        self.DrawPieces(win,game)
+    def drawGameScreen(self, game):
+        self.drawBoard()
+        self.drawPieces(game)
 
     #Draws the board on the screen
-    def DrawBoard(self, win):
-        pass
+    def drawBoard(self):
+        self.screen.fill(p.Color("white"))
+        color = p.Color("gray")
+        # Player 1's storage
+        for r in range(2):
+            for c in range(8):
+                p.draw.circle(self.screen, color, ((c * self.SLOTSIZE) + self.SLOTSIZE, (r * self.SLOTSIZE) + self.SLOTSIZE / 2), self.SLOTSIZE / 2)
+        # The main board
+        for r in range(self.amountOfSlots):
+            for c in range(self.amountOfSlots):
+                p.draw.circle(self.screen, color, ((c * self.SLOTSIZE) + (self.SLOTSIZE*1.5), (r * self.SLOTSIZE) + self.SLOTSIZE / 2 + (2 * self.SLOTSIZE)),self.SLOTSIZE / 2)
+        # Player 2's storage
+        for r in range(2):
+            for c in range(8):
+                p.draw.circle(self.screen, color, ((c * self.SLOTSIZE) + self.SLOTSIZE, (r * self.SLOTSIZE) + self.SLOTSIZE / 2 + self.SLOTSIZE * 9),self.SLOTSIZE / 2)
+        # Draw the lines separating storage the main board
+        p.draw.rect(self.screen, p.Color("black"), p.Rect(0, self.SLOTSIZE * 2, self.BOARDWIDTH, 1))
+        p.draw.rect(self.screen, p.Color("black"), p.Rect(0, self.SLOTSIZE * 9, self.BOARDWIDTH, 1))
 
     #Draws the pieces to the screen
-    def DrawPieces(self, win, game):
+    def drawPieces(self, game):
         pass
-
     #Draws the intro screen - the title and buttons
     def DrawIntroScreen(self, win):
         pass
@@ -94,8 +156,8 @@ class Button:
     #Draw the button to the screen
     def draw(self):
         #draw a rectangle
-        pygame.draw.rect(self.win, self.color, (self.x, self.y, self.width, self.height))
-        font = pygame.font.SysFont("comicsans", 40)
+        p.draw.rect(self.win, self.color, (self.x, self.y, self.width, self.height))
+        font = p.font.SysFont("comicsans", 40)
         text = font.render(self.text, 1, (255, 255, 255))
         #Draw the text on the rectangle, centered
         self.win.blit(text, (self.x + round(self.width / 2) - round(text.get_width() / 2),self.y + round(self.height / 2) - round(text.get_height() / 2)))
@@ -114,16 +176,16 @@ class Button:
         #Draw the hover text window above or below the button
         if not self.showWindowAbove:
             #Draw the rectangular window
-            pygame.draw.rect(self.win, self.color, (self.x, self.y-self.height, self.width, self.height))
-            font = pygame.font.SysFont("comicsans", 40)
+            p.draw.rect(self.win, self.color, (self.x, self.y-self.height, self.width, self.height))
+            font = p.font.SysFont("comicsans", 40)
             text = font.render(self.explanationText, 1, (255, 255, 255))
             # Draw the explanatory text
             self.win.blit(text, (self.x + round(self.width / 2) - round(text.get_width() / 2),self.y - self.height + round(self.height / 2) - round(text.get_height() / 2)))
 
         else:
             # Draw the rectangular window
-            pygame.draw.rect(self.win, self.color, (self.x, self.y+self.height, self.width, self.height))
-            font = pygame.font.SysFont("comicsans", 40)
+            p.draw.rect(self.win, self.color, (self.x, self.y+self.height, self.width, self.height))
+            font = p.font.SysFont("comicsans", 40)
             text = font.render(self.explanationText, 1, (255, 255, 255))
             #Draw the explanatory text
             self.win.blit(text, (self.x + round(self.width / 2) - round(text.get_width() / 2),self.y + self.height + round(self.height / 2) - round(text.get_height() / 2)))
@@ -139,4 +201,7 @@ class Button:
         #Show the explanatory text window
         self.ShowTextWindow()
 
+
+main = Main()
+main.Run()
 
