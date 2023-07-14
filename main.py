@@ -282,7 +282,114 @@ class UI:
 
     #Draws the help screen, with the instructions about how to play the game
     def drawInstructionScreen(self):
-        pass
+        self.screen.fill(p.Color("white"))
+        #Draw the panel
+        p.draw.rect(self.screen, p.Color("gray"), p.Rect(5, 10, 355, 420))
+        # Draw the title of the panel
+        font = p.font.SysFont("comicsans", 30)
+        text = font.render("Rules:", 1, (255, 255, 255))
+        self.screen.blit(text, (180 - round(text.get_width() / 2), 5))
+        #Draw the text
+        font = p.font.SysFont("comicsans", 13)
+
+        rules = """
+Each player has two rows of holes used to store their pieces (large cylinders, large cylinders that are hollow to allow a peg to be placed inside, and smaller pegs).
+On each go, a player places any one of his pieces from his storage rows onto the board. You can place your pegs inside your opponent's cylinders, but not inside your own, or place your hollow cylinders around your opponent's pegs but again not around your own.
+Once you have played all of your cylinders from your storage you can move a cylinder of yours that is already on the board; equally, once you have played all your pegs you can then move one of your pegs on the board.
+The objective is to make any one of 3 five in a row formations with pieces of your colour, vertically, horizontally or diagonally. 
+Hollow and full cylinders are equivalent in formations, even if an opponent's peg is in the cylinder. Pegs still count as pegs, even if an opponent's cylinder is around them. 
+        """
+
+        self.renderTextOnMultipleLines((355,420), rules, (15,24), (255,255,255), font)
+
+
+
+        # Draw the panel
+        p.draw.rect(self.screen, p.Color("gray"), p.Rect(370, 10, 240, 420))
+        # Draw the title of the panel
+        font = p.font.SysFont("comicsans", 30)
+        text = font.render("Patterns:", 1, (255, 255, 255))
+        self.screen.blit(text, (490 - round(text.get_width() / 2), 25))
+
+        # Draw the patterns
+        # Pattern 1
+        # Draw the background
+        p.draw.rect(self.screen, p.Color("white"), p.Rect(380, 100, 220, 40))
+        # Draw the pattern
+        p.draw.circle(self.screen, p.Color("grey"), (410, 120), self.SLOTSIZE / 2)
+        p.draw.circle(self.screen, p.Color("red"), (410, 120), self.PEGSIZE / 2)
+
+        p.draw.circle(self.screen, p.Color("red"), (450, 120), self.SLOTSIZE / 2)
+
+        p.draw.circle(self.screen, p.Color("grey"), (490, 120), self.SLOTSIZE / 2)
+        p.draw.circle(self.screen, p.Color("red"), (490, 120), self.PEGSIZE / 2)
+
+        p.draw.circle(self.screen, p.Color("red"), (530, 120), self.SLOTSIZE / 2)
+
+        p.draw.circle(self.screen, p.Color("grey"), (570, 120), self.SLOTSIZE / 2)
+        p.draw.circle(self.screen, p.Color("red"), (570, 120), self.PEGSIZE / 2)
+
+        # Pattern 2
+        # Draw the background
+        p.draw.rect(self.screen, p.Color("white"), p.Rect(380, 180, 220, 40))
+        # Draw the pattern
+        p.draw.circle(self.screen, p.Color("grey"), (410, 200), self.SLOTSIZE / 2)
+        p.draw.circle(self.screen, p.Color("red"), (410, 200), self.PEGSIZE / 2)
+
+        p.draw.circle(self.screen, p.Color("red"), (450, 200), self.SLOTSIZE / 2)
+
+        p.draw.circle(self.screen, p.Color("red"), (490, 200), self.SLOTSIZE / 2)
+
+        p.draw.circle(self.screen, p.Color("red"), (530, 200), self.SLOTSIZE / 2)
+
+        p.draw.circle(self.screen, p.Color("grey"), (570, 200), self.SLOTSIZE / 2)
+        p.draw.circle(self.screen, p.Color("red"), (570, 200), self.PEGSIZE / 2)
+
+        # Pattern 2
+        # Draw the background
+        p.draw.rect(self.screen, p.Color("white"), p.Rect(380, 260, 220, 40))
+        # Draw the pattern
+        p.draw.circle(self.screen, p.Color("grey"), (410, 280), self.SLOTSIZE / 2)
+        p.draw.circle(self.screen, p.Color("red"), (410, 280), self.PEGSIZE / 2)
+
+        p.draw.circle(self.screen, p.Color("grey"), (450, 280), self.SLOTSIZE / 2)
+        p.draw.circle(self.screen, p.Color("red"), (450, 280), self.PEGSIZE / 2)
+
+        p.draw.circle(self.screen, p.Color("red"), (490, 280), self.SLOTSIZE / 2)
+
+        p.draw.circle(self.screen, p.Color("grey"), (530, 280), self.SLOTSIZE / 2)
+        p.draw.circle(self.screen, p.Color("red"), (530, 280), self.PEGSIZE / 2)
+
+        p.draw.circle(self.screen, p.Color("grey"), (570, 280), self.SLOTSIZE / 2)
+        p.draw.circle(self.screen, p.Color("red"), (570, 280), self.PEGSIZE / 2)
+
+        # Generate and draw the button
+        self.backButton = Button("Back", 380, 350, p.Color("Blue"), self.screen, "Return to the main menu",self.drawIntroScreen, height=70, width=220)
+        self.backButton.draw()
+
+    def renderTextOnMultipleLines(self, size, text, position, color, font):
+        # An array of lists of the words in each line.
+        words = []
+        for word in text.splitlines():
+            words.append(word.split(" "))
+        # The width of a space.
+        space = font.size(" ")[0]
+        width = size[0]
+        x = position[0]
+        y = position[1]
+        for line in words:
+            for word in line:
+                wordRendered = font.render(word, 0, color)
+                wordWidth = wordRendered.get_size()[0]
+                wordHeight = wordRendered.get_size()[1]
+                if x + wordWidth >= width:
+                    x = position[0]  #Reset the x.coordinate to the far left
+                    y += wordHeight  #Set the y coordinate to that of the next row
+                self.screen.blit(wordRendered, (x, y))
+                x += wordWidth + space
+            x = position[0]  #Reset the x coordinate to the far left
+            y += wordHeight  #Set the y coordinate to that of the next row.
+
 
 #Represents a clickable, rectangular button with a text overlay
 class Button:
