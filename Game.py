@@ -36,7 +36,29 @@ class Game:
 
     #Carries out the input move on the boards and updates the movesStack
     def MakeMove(self, move):
-        pass
+        # Try acting as though the array is 2D
+        try:
+            # If it succeeds, the array is 2D
+            pieceToMove = move.startArray[move.startRow][move.startCol]
+            # Set the end location to the piece you want there
+            if (pieceToMove[1] == "p"):
+                self.pegBoard[move.endRow][move.endCol] = pieceToMove
+            else:
+                self.cylinderBoard[move.endRow][move.endCol] = pieceToMove
+            # Remove that piece from the original array
+            move.startArray[move.startRow][move.startCol] = "--"
+        except:
+            # If it fails, the array is 1D, so access it only using row.
+            pieceToMove = move.startArray[move.startCol]
+            # Set the end location to the piece you want there
+            if (pieceToMove[1] == "p"):
+                self.pegBoard[move.endRow][move.endCol] = pieceToMove
+            else:
+                self.cylinderBoard[move.endRow][move.endCol] = pieceToMove
+            # Remove that piece from the original array
+            move.startArray[move.startCol] = "--"
+
+        self.movesStack.append(move)
 
     #Undoes the last move made
     def UndoMove(self):

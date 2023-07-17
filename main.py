@@ -21,6 +21,8 @@ class Main:
         self.MAXFPS = 20
         self.clicks = []
         self.currentScreen = "menu"
+        self.isFirstGameClick = True
+        self.game = None
 
     def GoToMenu(self):
         self.currentScreen = "menu"
@@ -29,14 +31,14 @@ class Main:
         self.currentScreen = "instructions"
 
     def LoadGame(self):
+        self.game = g.Game()
         self.currentScreen = "game"
 
     #This is the main function that controls everything else. A while loop runs continously in it to update the game
     def Run(self):
         p.init()
-        clock = p.time.Clock()
-        self.game = g.Game()
         self.UI = UI(self)
+        clock = p.time.Clock()
         while self.isGameRunning:
             clock.tick(self.MAXFPS)
             self.handleInputEvents()
@@ -63,58 +65,53 @@ class Main:
                 for btn in self.UI.currentButtonsToUpdate:
                     if btn.IsCoordInside(pos):
                         btn.OnClick()
-                if not self.gameOver and ((self.player1Turn and self.hasPlayer1) or (self.hasPlayer2 and not self.player1Turn)):
+                if not self.isFirstGameClick and self.currentScreen == "game" and not self.gameOver and ((self.player1Turn and self.hasPlayer1) or (self.hasPlayer2 and not self.player1Turn)):
                     location = p.mouse.get_pos()
                     if (len(self.clicks) == 0):
                         # Get the vertical mouse location and convert it to a slot position
-                        row = (location[1] // self.UI.SLOTSIZE) - 2
+                        row = (location[1] // self.UI.SLOTSIZE)
                         # if it is in player 1's storage
                         if (row < 2):
                             # Compensate for the slots in storage being centered differently
                             col = ((location[0] + (self.UI.SLOTSIZE // 2)) // self.UI.SLOTSIZE) - 1
                             row = (location[1] // self.UI.SLOTSIZE)
                             self.clicks.append((row, col))
-                            if (row < 1):
+                            if (row == 0):
                                 self.clicks.append(self.game.player1PegStorage)
                             else:
                                 self.clicks.append(self.game.player1CylinderStorage)
                             # if it is in player 2's storage
-                        elif (row > 9):
+                        elif (row > 8 and row < 11):
                             # Compensate for the slots in storage being centered differently
                             col = ((location[0] + (self.UI.SLOTSIZE // 2)) // self.UI.SLOTSIZE) - 1
                             row = (location[1] // self.UI.SLOTSIZE)
                             self.clicks.append((row, col))
-                            if (row > 10):
-                                self.clicks.append(self.game.player2CylinderStorage)
-                            else:
+                            if (row == 10):
                                 self.clicks.append(self.game.player2PegStorage)
-
-                        else:
-                            # The click is on the main board
-                            col = location[0] // self.UI.SLOTSIZE
-                            row = (location[1] // self.UI.SLOTSIZE) - 2
-                            self.clicks.append((row, col))
-                            #if (self.game)
-                    else:
+                            else:
+                                self.clicks.append(self.game.player2CylinderStorage)
+                        elif row < 9 and row > 1:
+                             # The click is on the main board
+                             col = location[0] // self.UI.SLOTSIZE - 1
+                             row = (location[1] // self.UI.SLOTSIZE)-2
+                             self.clicks.append((row, col))
+                             if (self.game.pegBoard[row][col] == "yp" and main.player1Turn) or (self.game.pegBoard[row][col] == "rp" and not main.player1Turn):
+                                self.clicks.append(self.game.pegBoard)
+                             else:
+                                self.clicks.append(self.game.cylinderBoard)
+                    elif (len(self.clicks) >= 2):
                         # Get the vertical mouse location and convert it to a slot position
-                        row = (location[1] // self.UI.SLOTSIZE) - 2
-                        # if it is in player 1's storage
-                    if (row < 2):
-                        # Compensate for the slots in storage being centered differently
-                        col = ((location[0] + (self.UI.SLOTSIZE // 2)) // self.UI.SLOTSIZE) - 1
                         row = (location[1] // self.UI.SLOTSIZE)
-                        # if it is in player 2's storage
-                    elif (row > 11):
-                        # Compensate for the slots in storage being centered differently
-                        col = ((location[0] + (self.UI.SLOTSIZE // 2)) // self.UI.SLOTSIZE) - 1
-                        row = (location[1] // self.UI.SLOTSIZE)
-                    else:
-                        # The click is on the main board
-                        col = location[0] // self.UI.SLOTSIZE
-                        row = (location[1] // self.UI.SLOTSIZE) - 2
-                        #self.game.MakeMove(self.clicks[1], self.clicks[0], (row, col)))
+                        if row < 9 and row > 1:
+                            # The click is on the main board
+                            col = (location[0] - self.UI.SLOTSIZE) // self.UI.SLOTSIZE
+                            row = (location[1] // self.UI.SLOTSIZE) - 2
+                            self.game.MakeMove(g.Move(self.clicks[1], self.clicks[0], (row, col)))
+                            self.clicks = []
+                elif (self.isFirstGameClick and self.currentScreen == "game"):
+                    self.isFirstGameClick = False
 
-                    self.clicks = []
+
 
 
             elif e.type == p.KEYDOWN:
@@ -125,6 +122,7 @@ class Main:
                 elif e.key == p.K_r:
                     pass
 
+        #print(self.clicks)
 
 
 #Handles drawing the UI
