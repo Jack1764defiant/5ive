@@ -178,6 +178,9 @@ class Main:
                             row = (location[1] // self.UI.SLOTSIZE) - 2
                             if (self.game.MakeMove(g.Move(self.clicks[1], self.clicks[0], (row, col)), self.player1Turn)):
                                 self.player1Turn = not self.player1Turn
+                                if (self.game.CheckForWin()):
+                                    if __name__ == '__main__':
+                                        self.currentScreen = "win"
                             self.clicks = []
                 elif (self.isFirstGameClick and self.currentScreen == "game"):
                     self.clicks = []

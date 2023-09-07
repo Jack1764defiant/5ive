@@ -34,7 +34,7 @@ class Game:
         #A stack containing every move that has been made, for use in UndoMove()
         self.movesStack = []
         self.main = main
-
+        self.winConditions = [(["p", "-", "-", "-", "p"],["-", "c", "c", "c", "-"]), (["p", "-", "p", "-", "p"],["-", "c", "-", "c", "-"]), (["p", "p", "-", "p", "p"],["-", "-", "c", "-", "-"])]
     #Carries out the input move on the boards and updates the movesStack
     def MakeMove(self, move, isPlayer1Turn):
         # Try acting as though the array is 2D
@@ -142,6 +142,153 @@ class Game:
         else:
             return False
 
+    #Check to see if a player has won
+    def CheckForWin(self):
+        #Check verticals
+        for row in range(0, len(self.pegBoard)-4):
+            for col in range(0, len(self.pegBoard[row])):
+                if (self.CheckCoordVertical(row, col)):
+                    return True
+        #Check horizontals
+        for row in range(0, len(self.pegBoard)):
+            for col in range(0, len(self.pegBoard[row])-4):
+                if (self.CheckCoordHorizontal(row, col)):
+                    return True
+
+        #Check positive diagonals
+        for row in range(0, len(self.pegBoard)-4):
+            for col in range(0, len(self.pegBoard[row])-4):
+                if (self.CheckCoordPosDiagonal(row, col)):
+                    return True
+
+        #Check negative diagonals
+        for row in range(0, len(self.pegBoard)-4):
+            for col in range(4, len(self.pegBoard[row])):
+                if (self.CheckCoordNegDiagonal(row, col)):
+                    return True
+
+        #If no win has been found, return false
+        return False
+
+    def CheckCoordHorizontal(self, row, col):
+        #Check for each pattern
+        for winCondition in self.winConditions:
+            #Check red
+            colour = "r"
+            successCount = 0
+            for i in range(0, 5):
+                # check pegs
+                if winCondition[0][i] == "-" or (
+                        self.pegBoard[row][col + i][0] == colour and self.pegBoard[row][col + i][1] == winCondition[0][i]):
+                    #Check cylinders
+                    if winCondition[1][i] == "-" or (self.cylinderBoard[row][col + i][0] == colour and (
+                            self.cylinderBoard[row][col + i][1] == winCondition[1][i] or
+                            self.cylinderBoard[row][col + i][1] == "h")):
+                        successCount += 1
+            if successCount == 5:
+                return True
+
+            #Check yellow
+            colour = "y"
+            successCount = 0
+
+            for i in range(0, 5):
+                # check pegs
+                if winCondition[0][i] == "-" or (self.pegBoard[row][col+i][0] == colour and self.pegBoard[row][col+i][1] == winCondition[0][i]):
+                    # Check cylinders
+                    if winCondition[1][i] == "-" or (self.cylinderBoard[row][col+i][0] == colour and (self.cylinderBoard[row][col+i][1] == winCondition[1][i] or self.cylinderBoard[row][col+i][1] == "h")):
+                        successCount += 1
+            if successCount == 5:
+                return True
+
+
+    def CheckCoordVertical(self, row, col):
+        # Check for each pattern
+        for winCondition in self.winConditions:
+            # Check red
+            colour = "r"
+            successCount = 0
+            for i in range(0, 5):
+                # check pegs
+                if winCondition[0][i] == "-" or (
+                        self.pegBoard[row + i][col][0] == colour and self.pegBoard[row + i][col][1] == winCondition[0][i]):
+                    # Check cylinders
+                    if winCondition[1][i] == "-" or (self.cylinderBoard[row + i][col][0] == colour and (
+                            self.cylinderBoard[row + i][col][1] == winCondition[1][i] or
+                            self.cylinderBoard[row + i][col][1] == "h")):
+                        successCount += 1
+            if successCount == 5:
+                return True
+
+            # Check yellow
+            colour = "y"
+            successCount = 0
+            for i in range(0, 5):
+                # check pegs
+                if winCondition[0][i] == "-" or (self.pegBoard[row + i][col][0] == colour and self.pegBoard[row + i][col][1] == winCondition[0][i]):
+                    # Check cylinders
+                    if winCondition[1][i] == "-" or (self.cylinderBoard[row + i][col][0] == colour and (self.cylinderBoard[row + i][col][1] == winCondition[1][i] or self.cylinderBoard[row+i][col][1] == "h")):
+                        successCount += 1
+            if successCount == 5:
+                return True
+
+
+    def CheckCoordPosDiagonal(self, row, col):
+        # Check for each pattern
+        print(row, col)
+        for winCondition in self.winConditions:
+            # Check red
+            colour = "r"
+            successCount = 0
+            for i in range(0, 5):
+                # check pegs
+                if winCondition[0][i] == "-" or (self.pegBoard[row + i][col+i][0] == colour and self.pegBoard[row + i][col+i][1] == winCondition[0][i]):
+                    # Check cylinders
+                    if winCondition[1][i] == "-" or (self.cylinderBoard[row + i][col+i][0] == colour and (self.cylinderBoard[row + i][col+i][1] == winCondition[1][i] or self.cylinderBoard[row+i][col+i][1] == "h")):
+                        successCount += 1
+            if successCount == 5:
+                return True
+
+            # Check yellow
+            colour = "y"
+            successCount = 0
+            for i in range(0, 5):
+                # check pegs
+                if winCondition[0][i] == "-" or (self.pegBoard[row + i][col+i][0] == colour and self.pegBoard[row + i][col+i][1] == winCondition[0][i]):
+                    # Check cylinders
+                    if winCondition[1][i] == "-" or (self.cylinderBoard[row + i][col+i][0] == colour and (self.cylinderBoard[row + i][col+i][1] == winCondition[1][i] or self.cylinderBoard[row+i][col+i][1] == "h")):
+                        successCount += 1
+            if successCount == 5:
+                return True
+
+
+    def CheckCoordNegDiagonal(self, row, col):
+        # Check for each pattern
+        for winCondition in self.winConditions:
+            # Check red
+            colour = "r"
+            successCount = 0
+            for i in range(0, 5):
+                # check pegs
+                if winCondition[0][i] == "-" or (self.pegBoard[row + i][col-i][0] == colour and self.pegBoard[row + i][col-i][1] == winCondition[0][i]):
+                    # Check cylinders
+                    if winCondition[1][i] == "-" or (self.cylinderBoard[row + i][col-i][0] == colour and (self.cylinderBoard[row + i][col-i][1] == winCondition[1][i] or self.cylinderBoard[row+i][col-i][1] == "h")):
+                        successCount += 1
+            if successCount == 5:
+                return True
+
+            # Check yellow
+            colour = "y"
+            successCount = 0
+            for i in range(0, 5):
+                # check pegs
+                if winCondition[0][i] == "-" or (self.pegBoard[row + i][col-i][0] == colour and self.pegBoard[row + i][col-i][1] == winCondition[0][i]):
+                    # Check cylinders
+                    if winCondition[1][i] == "-" or (self.cylinderBoard[row + i][col-i][0] == colour and (self.cylinderBoard[row + i][col-i][1] == winCondition[1][i] or self.cylinderBoard[row+i][col-i][1] == "h")):
+                        successCount += 1
+            if successCount == 5:
+                return True
+
 #Used to represent an individual move
 class Move:
     def __init__(self, startArray, startCoord, endCoord):
@@ -177,3 +324,4 @@ class Network:
 
     def send(self, data):
         pass
+
