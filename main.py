@@ -17,6 +17,10 @@ class Main:
         #This is used to ignore the first game click
         self.isFirstGameClick = True
         self.game = None
+        #The current timer value
+        self.timerValue = 0
+        #The maximum timer value
+        self.maxTimerTime = 0
 
     def GoToMenu(self):
         self.currentScreen = "menu"
@@ -51,7 +55,16 @@ class Main:
         p.init()
         self.UI = UI(self)
         clock = p.time.Clock()
+        self.timeLastFrame = time.time()
+        self.deltaTime = 0
         while self.isGameRunning:
+            self.deltaTime = time.time() - self.timeLastFrame
+            self.timeLastFrame = time.time()
+            if (self.currentScreen == "game"):
+                self.timerValue -= self.deltaTime
+                if (self.timerValue <= 0):
+                    self.timerValue = self.maxTimerTime
+                    self.player1Turn = not self.player1Turn
 
             clock.tick(self.MAXFPS)
             self.handleInputEvents()
@@ -92,6 +105,7 @@ class Main:
                 for btn in self.UI.currentButtonsToUpdate:
                     if btn.IsCoordInside(pos):
                         btn.OnClick()
+                self.maxTimerTime = self.UI.timeSlider.getValue()
                 #Check if a game is running and try to move pieces
                 if not self.isFirstGameClick and self.currentScreen == "game" and not self.gameOver and ((self.player1Turn and self.hasPlayer1) or (self.hasPlayer2 and not self.player1Turn)):
                     location = p.mouse.get_pos()
@@ -178,6 +192,7 @@ class Main:
                             row = (location[1] // self.UI.SLOTSIZE) - 2
                             if (self.game.MakeMove(g.Move(self.clicks[1], self.clicks[0], (row, col)), self.player1Turn)):
                                 self.player1Turn = not self.player1Turn
+                                self.timerValue = self.maxTimerTime
                                 if (self.game.CheckForWin()):
                                     if __name__ == '__main__':
                                         self.currentScreen = "win"
@@ -273,7 +288,16 @@ class UI:
         #Draw the title of the panel
         font = p.font.SysFont("arial", 50)
         text = font.render("Patterns:", 1, (255, 255, 255))
-        self.screen.blit(text, (415, 25))
+        self.screen.blit(text, (440, 25))
+
+        #Draw the timer
+        p.draw.rect(self.screen, p.Color("black"), p.Rect(380, 20, 50, 70))
+        font = p.font.SysFont("arial", 20)
+        text = font.render("Timer", 1, (255, 255, 255))
+        self.screen.blit(text, (383, 20))
+        font = p.font.SysFont("arial", 45)
+        text = font.render(str(int(self.main.timerValue)), 1, (255, 0, 0))
+        self.screen.blit(text, (405 - round(text.get_width() / 2), 37))
 
         #Draw the patterns
         #Pattern 1
