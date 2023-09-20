@@ -21,8 +21,17 @@ class Main:
         self.timerValue = 0
         #The maximum timer value
         self.maxTimerTime = 0
+        #The difficulty of the AI if you are playing against it
+        self.AIDifficulty = 1
+        self.colour = 1
+        # Switch which player is going
+        self.player1Turn = True
+
 
     def GoToMenu(self):
+        self.player1Turn = True
+        self.colour = 1
+        self.UI.colourButton.text = "Colour: yellow"
         self.currentScreen = "menu"
 
     def LoadInstructions(self):
@@ -30,55 +39,105 @@ class Main:
 
     def LoadGame(self):
         self.game = g.Game(self)
+        self.game.player1Turn = self.player1Turn
         #Is player 1 human or a bot?
         self.hasPlayer1 = True
         # Is player 2 human or a bot?
         self.hasPlayer2 = True
-        # Is it player 1s turn?
-        self.player1Turn = True
         #Is the game over?
         self.gameOver = False
         self.timerValue = self.UI.timeSlider.getValue()
         self.currentScreen = "game"
         self.clicks = []
-        self.colour = 1
+
+    def LoadAIGame(self):
+        self.game = g.Game(self)
+        self.game.player1Turn = self.player1Turn
+        # Is player 1 human or a bot?
+        if (self.colour == 1):
+            self.hasPlayer1 = True
+        else:
+            self.hasPlayer1 = False
+        # Is player 2 human or a bot?
+        if (self.colour == 2):
+            self.hasPlayer2 = True
+        else:
+            self.hasPlayer2 = False
+        # Is the game over?
+        self.gameOver = False
+        self.timerValue = self.UI.timeSlider.getValue()
+        self.AIDifficulty = self.UI.difficultySlider.getValue()
+        self.currentScreen = "game"
+        self.clicks = []
+        self.AI = AI(self.AIDifficulty)
+
+
+    def LoadOnlineGame(self):
+        self.game = g.Game(self)
+        self.game.player1Turn = self.player1Turn
+        # Is player 1 human or a bot?
+        self.hasPlayer1 = True
+        # Is player 2 human or a bot?
+        self.hasPlayer2 = True
+        # Is the game over?
+        self.gameOver = False
+        self.timerValue = self.UI.timeSlider.getValue()
+        self.currentScreen = "game"
+        self.clicks = []
 
     def SwitchColours(self):
         self.player1Turn = not self.player1Turn
         if self.colour == 1:
             self.colour = 2
+            self.UI.colourButton.text = "Colour: red"
         else:
             self.colour = 1
+            self.UI.colourButton.text = "Colour: yellow"
 
     #This is the main function that controls everything else. A while loop runs continuously in it to update the game
     def Run(self):
         p.init()
         self.UI = UI(self)
         clock = p.time.Clock()
+        #This is the time the last frame ran at
         self.timeLastFrame = time.time()
+        #This is the time since the last frame
         self.deltaTime = 0
         while self.isGameRunning:
+            #Calculate the time since the last frame
             self.deltaTime = time.time() - self.timeLastFrame
+            #update the time the last frame ran at to be this frame
             self.timeLastFrame = time.time()
-            if (self.currentScreen == "game"):
+            #The timer should only update when a game is being played
+            if (self.currentScreen == "game" and ((self.hasPlayer1 and self.game.player1Turn) or (self.hasPlayer2 and not self.game.player1Turn))):
+                #set the timer value to the correct time
                 self.timerValue -= self.deltaTime
+                #If the timer has run out...
                 if (self.timerValue <= 0):
+                    #reset the timer
                     self.timerValue = self.maxTimerTime
-                    self.player1Turn = not self.player1Turn
+                    #Switch which player is going
+                    self.game.player1Turn = not self.game.player1Turn
 
             clock.tick(self.MAXFPS)
             self.handleInputEvents()
+
+            #Draw the appropriate screen
             if (self.currentScreen =="instructions"):
                 self.UI.drawInstructionScreen()
             elif (self.currentScreen == "game"):
                 self.UI.drawGameScreen(self.game)
+                if (self.game.player1Turn and not self.hasPlayer1) or (
+                        not self.game.player1Turn and not self.hasPlayer2):
+                    p.display.flip()
+                    self.game.MakeMove(self.AI.findBestAIMove(self.game, self.game.GetAllValidMoves("y" if self.game.player1Turn else "r")))
             elif (self.currentScreen == "menu"):
                 self.UI.drawIntroScreen()
             elif (self.currentScreen == "win"):
                 self.UI.drawWinScreen(self.game)
             elif (self.currentScreen == "lose"):
                 self.UI.drawLoseScreen(self.game)
-
+            #update the display
             p.display.flip()
 
     def handleInputEvents(self):
@@ -92,6 +151,7 @@ class Main:
         for btn in self.UI.currentButtonsToUpdate:
             if btn.IsCoordInside(pos):
                 btn.OnHover()
+        #Loop through every input event
         for e in events:
             # Exit when they try to quit
             if e.type == p.QUIT:
@@ -105,20 +165,23 @@ class Main:
                 for btn in self.UI.currentButtonsToUpdate:
                     if btn.IsCoordInside(pos):
                         btn.OnClick()
+                #Update the timer value with the current input from the slider
                 self.maxTimerTime = self.UI.timeSlider.getValue()
+                #Update the AI difficulty value with the current input from the slider
+                self.AIDifficulty = self.UI.difficultySlider.getValue()
                 #Check if a game is running and try to move pieces
-                if not self.isFirstGameClick and self.currentScreen == "game" and not self.gameOver and ((self.player1Turn and self.hasPlayer1) or (self.hasPlayer2 and not self.player1Turn)):
+                if not self.isFirstGameClick and self.currentScreen == "game" and not self.gameOver and ((self.game.player1Turn and self.hasPlayer1) or (self.hasPlayer2 and not self.game.player1Turn)):
                     location = p.mouse.get_pos()
                     if (len(self.clicks) == 0):
                         # Get the vertical mouse location and convert it to a slot position
-                        row = (location[1] // self.UI.SLOTSIZE)
-                        tempCol = ((location[0] + (self.UI.SLOTSIZE // 2)) // self.UI.SLOTSIZE) - 1
-                        col = location[0] // self.UI.SLOTSIZE - 1
-                        if (row >= 11 or col >= 7 or tempCol >= 8):
+                        row = (location[1] / self.UI.SLOTSIZE)
+                        tempCol = ((location[0] + (self.UI.SLOTSIZE // 2)) / self.UI.SLOTSIZE) - 1
+                        col = location[0] / self.UI.SLOTSIZE - 1
+                        if (row >= 11.5 or col >= 7.5 or tempCol >= 8.5):
                             self.clicks = []
                             continue
                         # if it is in player 1's storage
-                        if (row < 2):
+                        if (self.game.player1Turn and row < 2.5):
                             # Compensate for the slots in storage being centered differently
                             col = ((location[0] + (self.UI.SLOTSIZE // 2)) // self.UI.SLOTSIZE) - 1
                             row = (location[1] // self.UI.SLOTSIZE)
@@ -128,7 +191,7 @@ class Main:
                             else:
                                 self.clicks.append(self.game.player1CylinderStorage)
                             # if it is in player 2's storage
-                        elif (row > 8 and row < 11):
+                        elif ((not self.game.player1Turn) and row > 8 and row < 11):
                             # Compensate for the slots in storage being centered differently
                             col = ((location[0] + (self.UI.SLOTSIZE // 2)) // self.UI.SLOTSIZE) - 1
                             row = (location[1] // self.UI.SLOTSIZE)
@@ -148,10 +211,10 @@ class Main:
                                 self.clicks.append(self.game.cylinderBoard)
                     elif (len(self.clicks) >= 2):
                         #Check that the click is within the board. If it is not, deselect any pieces and skip trying to make a move.
-                        row = (location[1] // self.UI.SLOTSIZE)
-                        tempCol = ((location[0] + (self.UI.SLOTSIZE // 2)) // self.UI.SLOTSIZE) - 1
-                        col = location[0] // self.UI.SLOTSIZE - 1
-                        if (row >= 11 or col >= 7 or tempCol >= 8):
+                        row = (location[1] / self.UI.SLOTSIZE)
+                        tempCol = ((location[0] + (self.UI.SLOTSIZE // 2)) / self.UI.SLOTSIZE) - 1
+                        col = location[0] / self.UI.SLOTSIZE - 1
+                        if (row >= 11.5 or col >= 7.5 or tempCol >= 8.5 or row <= 2):
                             self.clicks = []
                             continue
                         # Get the vertical mouse location and convert it to a slot position
@@ -190,13 +253,14 @@ class Main:
                             # The click is on the main board
                             col = (location[0] - self.UI.SLOTSIZE) // self.UI.SLOTSIZE
                             row = (location[1] // self.UI.SLOTSIZE) - 2
-                            if (self.game.MakeMove(g.Move(self.clicks[1], self.clicks[0], (row, col)), self.player1Turn)):
-                                self.player1Turn = not self.player1Turn
+                            if (self.game.MakeMove(g.Move(self.clicks[1], self.clicks[0], (row, col)))):
+                                #Reset the timer for the next player's turn
                                 self.timerValue = self.maxTimerTime
                                 if (self.game.CheckForWin()):
                                     if __name__ == '__main__':
                                         self.currentScreen = "win"
                             self.clicks = []
+                #Ignore the first game click, as clicking on a button to load the game actually also carries over as a click in-game
                 elif (self.isFirstGameClick and self.currentScreen == "game"):
                     self.clicks = []
                     self.isFirstGameClick = False
@@ -204,11 +268,9 @@ class Main:
             elif e.type == p.KEYDOWN:
                 # Undo a move when z is pressed
                 if e.key == p.K_z:
+                    #Reset the timer
+                    self.timerValue = self.maxTimerTime
                     self.game.UndoMove()
-                # Restart game when r is pressed
-                elif e.key == p.K_r:
-                    pass
-
 
 
 #Handles drawing the UI
@@ -225,6 +287,7 @@ class UI:
         self.screen = p.display.set_mode((self.BOARDWIDTH, self.BOARDHEIGHT))
         #A list buttons that need to be checked for input in the game loop
         self.currentButtonsToUpdate = []
+        #Initialise buttons and sliders
         self.InitButtons()
         self.InitSliders()
 
@@ -238,6 +301,7 @@ class UI:
         self.gameButtons = []
         # List of all buttons that need to be checked for input on the win and lose screens
         self.winOrLoseButtons = []
+        # Create the buttons and append them to the appropriate list
         self.exitButton = Button("Quit", 380, 350, p.Color("Blue"), self.screen, "Return to the main menu",self.main.GoToMenu, height=70, width=220, windowHeight=25)
         self.gameButtons.append(self.exitButton)
         self.colourButton = Button("Colour: yellow", self.BOARDWIDTH / 2 - 75, 300, p.Color("Blue"), self.screen,
@@ -250,10 +314,10 @@ class UI:
                                       "Play against another person on the same computer.", self.main.LoadGame, windowHeight=75)
         self.menuButtons.append(self.twoPlayerButton)
         self.onlineButton = Button("Play online", self.BOARDWIDTH - 160, 120, p.Color("Blue"), self.screen,
-                                   "Play against another person over the internet.", self.main.LoadGame, windowHeight=75)
+                                   "Play against another person over the internet.", self.main.LoadOnlineGame, windowHeight=75)
         self.menuButtons.append(self.onlineButton)
         self.AIButton = Button("Play against AI", 235, 120, p.Color("Blue"), self.screen,
-                               "Play a game against the computer.", self.main.LoadGame, windowHeight=50)
+                               "Play a game against the computer.", self.main.LoadAIGame, windowHeight=50)
         self.menuButtons.append(self.AIButton)
 
         self.quitButton = Button("Quit", 380, 350, p.Color("Blue"), self.screen, "Return to the main menu",
@@ -265,11 +329,15 @@ class UI:
 
     #Generate all needed sliders so they can be drawn later
     def InitSliders(self):
+        #Create the slider
         self.difficultySlider = Slider(self.screen, self.BOARDWIDTH / 2 - 75, 270, 150, 20, min=1, max=4, step=1, colour=p.Color("white"))
+        # Create the ouput box for the slider
         self.difficultyOutput = TextBox(self.screen, self.BOARDWIDTH / 2 + 40, 225, 50, 40, fontSize=30)
         self.difficultyOutput.disable()
 
+        # Create the slider
         self.timeSlider = Slider(self.screen, self.BOARDWIDTH - 175, 270, 150, 20, min=10, max=120, step=1, colour=p.Color("white"))
+        # Create the ouput box for the slider
         self.timeOutput = TextBox(self.screen, self.BOARDWIDTH - 60, 225, 50, 40, fontSize=30)
         self.timeOutput.disable()
 
@@ -291,10 +359,11 @@ class UI:
         self.screen.blit(text, (440, 25))
 
         #Draw the timer
-        p.draw.rect(self.screen, p.Color("black"), p.Rect(380, 20, 50, 70))
+        p.draw.rect(self.screen, p.Color("black"), p.Rect(375, 20, 60, 70))
         font = p.font.SysFont("arial", 20)
         text = font.render("Timer", 1, (255, 255, 255))
         self.screen.blit(text, (383, 20))
+        #Draw the timer value
         font = p.font.SysFont("arial", 45)
         text = font.render(str(int(self.main.timerValue)), 1, (255, 0, 0))
         self.screen.blit(text, (405 - round(text.get_width() / 2), 37))
@@ -452,6 +521,10 @@ class UI:
                         p.draw.circle(self.screen, p.Color("red"), ((c * self.SLOTSIZE) + self.SLOTSIZE,(r * self.SLOTSIZE) + self.SLOTSIZE / 2 + (self.SLOTSIZE * 8)), self.SLOTSIZE / 2)
                         p.draw.circle(self.screen, p.Color("grey"), ((c * self.SLOTSIZE) + self.SLOTSIZE,(r * self.SLOTSIZE) + self.SLOTSIZE / 2 + (self.SLOTSIZE * 8)), self.PEGSIZE / 2)
 
+    def drawWinCoords(self, game):
+        for coord in game.winCoords:
+            p.draw.circle(self.screen, p.Color("black"), (
+                (coord[1] * self.SLOTSIZE) + self.SLOTSIZE * 1.5, (coord[0] * self.SLOTSIZE) + 5 * self.SLOTSIZE / 2), (self.SLOTSIZE / 2)*1.1)
 
     #Draws the intro screen - the title and buttons
     def drawIntroScreen(self):
@@ -497,6 +570,8 @@ class UI:
     def drawWinScreen(self, game):
         self.screen.fill(p.Color("white"))
         self.drawBoard()
+        if (len(game.winCoords) > 0):
+            self.drawWinCoords(game)
         self.drawPieces(game)
         # Draw the panel
         p.draw.rect(self.screen, p.Color("gray"), p.Rect(370, 10, 240, 420))
@@ -518,6 +593,8 @@ class UI:
     def drawLoseScreen(self, game):
         self.screen.fill(p.Color("white"))
         self.drawBoard()
+        if (len(game.winCoords) > 0):
+            self.drawWinCoords(game)
         self.drawPieces(game)
         # Draw the panel
         p.draw.rect(self.screen, p.Color("gray"), p.Rect(370, 10, 240, 420))
@@ -673,6 +750,8 @@ class Button:
             self.windowHeight = self.height
         else:
             self.windowHeight = windowHeight
+
+
 
     #Draw the button to the screen
     def draw(self):

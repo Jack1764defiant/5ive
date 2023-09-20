@@ -34,9 +34,14 @@ class Game:
         #A stack containing every move that has been made, for use in UndoMove()
         self.movesStack = []
         self.main = main
+        # Is it player 1s turn?
+        self.player1Turn = True
+        #The patterns you can make to win
         self.winConditions = [(["p", "-", "-", "-", "p"],["-", "c", "c", "c", "-"]), (["p", "-", "p", "-", "p"],["-", "c", "-", "c", "-"]), (["p", "p", "-", "p", "p"],["-", "-", "c", "-", "-"])]
+        self.winCoords = []
+
     #Carries out the input move on the boards and updates the movesStack
-    def MakeMove(self, move, isPlayer1Turn):
+    def MakeMove(self, move):
         # Try acting as though the array is 2D
         try:
             #Test by getting a value that would be out of bounds on the 1D arrays I am using
@@ -44,7 +49,7 @@ class Game:
             # If it succeeds, the array is 2D
             pieceToMove = move.startArray[move.startRow][move.startCol]
             #Check if it is the correct turn for a yellow piece to be moved
-            if ((pieceToMove[0] == "y" and isPlayer1Turn) or (pieceToMove[0] == "r" and not isPlayer1Turn)) and self.ValidateMove(move, pieceToMove):
+            if ((pieceToMove[0] == "y" and self.player1Turn) or (pieceToMove[0] == "r" and not self.player1Turn)) and self.ValidateMove(move, pieceToMove):
                 # Set the end location to the piece you want there
                 if (pieceToMove[1] == "p"):
                     self.pegBoard[move.endRow][move.endCol] = pieceToMove
@@ -53,6 +58,8 @@ class Game:
                 # Remove that piece from the original array
                 move.startArray[move.startRow][move.startCol] = "--"
                 self.movesStack.append(move)
+                # Switch which player is going
+                self.player1Turn = not self.player1Turn
                 return True
             else:
                 return False
@@ -60,7 +67,7 @@ class Game:
             # If it fails, the array is 1D, so access it only using column.
             pieceToMove = move.startArray[move.startCol]
             # Check if it is the correct turn for a red piece to be moved
-            if ((pieceToMove[0] == "y" and isPlayer1Turn) or (pieceToMove[0] == "r" and not isPlayer1Turn)) and self.ValidateMove(move, pieceToMove):
+            if ((pieceToMove[0] == "y" and self.player1Turn) or (pieceToMove[0] == "r" and not self.player1Turn)) and self.ValidateMove(move, pieceToMove):
                 # Set the end location to the piece you want there
                 if (pieceToMove[1] == "p"):
                     self.pegBoard[move.endRow][move.endCol] = pieceToMove
@@ -69,6 +76,8 @@ class Game:
                 # Remove that piece from the original array
                 move.startArray[move.startCol] = "--"
                 self.movesStack.append(move)
+                # Switch which player is going
+                self.player1Turn = not self.player1Turn
                 return True
             else:
                 return False
@@ -96,24 +105,106 @@ class Game:
             # Otherwise, it's a cylinder - remove it from the cylinder board
             else:
                 self.cylinderBoard[moveToUndo.endRow][moveToUndo.endCol] = "--"
+
             #Switch which player's move it is as we need to go back to how it was before the player made the move
-            self.main.player1Turn = not self.main.player1Turn
+            self.player1Turn = not self.player1Turn
+        else:
+            print("Attempted to undo when no moves have been made...")
 
     # Gets a list of every legal move
-    def GetAllValidMoves(self):
-        pass
+    def GetAllValidMoves(self, colour):
+        moves = []
+        # Loop through every position on the board
+        for row in range(0, len(self.pegBoard)):
+            for col in range(0, len(self.pegBoard[row])):
+                if (self.pegBoard[row][col] == "--" or self.pegBoard[row][col][0] == colour) and (
+                        self.cylinderBoard[row][col] == "--" or self.pegBoard[row][col] == colour + "h"):
+                    # this slot on the board is available
+                    if (colour == "y"):
+                        hasCylinder = False
+                        if (self.cylinderBoard[row][col] == "--"):
+                            if (self.pegBoard[row][col] == "--"):
+                                for i in range(0, len(self.player1CylinderStorage)):
+                                    if (self.player1CylinderStorage[i][1] == "c"):
+                                        moves.append(Move(self.player1CylinderStorage, (999, i), (row, col)))
+                                        hasCylinder = True
+                                        break
+                            for i in range(0, len(self.player1CylinderStorage)):
+                                if (self.player1CylinderStorage[i][1] == "h"):
+                                    moves.append(Move(self.player1CylinderStorage, (999, i), (row, col)))
+                                    hasCylinder = True
+                                    break
+                        else:
+                            hasCylinder = True
+                        hasPeg = False
+                        if (self.pegBoard[row][col] == "--" and self.cylinderBoard[row][col][1] != "f" and self.cylinderBoard[row][col][0] != colour):
+                            for i in range(0, len(self.player1PegStorage)):
+                                if (self.player1PegStorage[i][1] == "p"):
+                                    moves.append(Move(self.player1PegStorage, (999, i), (row, col)))
+                                    hasPeg = True
+                                    break
+                        else:
+                            hasPeg = True
+                        if (not hasCylinder):
+                            for row2 in range(0, len(self.cylinderBoard)):
+                                for col2 in range(0, len(self.cylinderBoard[row2])):
+                                    if self.cylinderBoard[row2][col2] == colour + "c":
+                                        moves.append(Move(self.cylinderBoard, (row2, col2), (row, col)))
+                        if (not hasCylinder):
+                            for row2 in range(0, len(self.cylinderBoard)):
+                                for col2 in range(0, len(self.pegBoard[row2])):
+                                    if self.cylinderBoard[row2][col2] == colour + "h":
+                                        moves.append(Move(self.cylinderBoard, (row2, col2), (row, col)))
+                        if (not hasPeg):
+                            for row2 in range(0, len(self.pegBoard)):
+                                for col2 in range(0, len(self.pegBoard[row2])):
+                                    if self.pegBoard[row2][col2] == colour + "p":
+                                        moves.append(Move(self.pegBoard, (row2, col2), (row, col)))
+                    else:
+                        hasCylinder = False
 
-    #Gets a list of everywhere a full cylinder could be placed
-    def GetFullCylinderMoves(self):
-        pass
+                        if (self.cylinderBoard[row][col] == "--"):
+                            if (self.pegBoard[row][col] == "--"):
+                                for i in range(0, len(self.player2CylinderStorage)):
+                                    if (self.player2CylinderStorage[i][1] == "c"):
+                                        moves.append(Move(self.player2CylinderStorage, (999, i), (row, col)))
+                                        hasCylinder = True
+                                        break
+                            for i in range(0, len(self.player2CylinderStorage)):
+                                if (self.player2CylinderStorage[i][1] == "h"):
+                                    moves.append(Move(self.player2CylinderStorage, (999, i), (row, col)))
+                                    hasCylinder = True
+                                    break
+                        else:
+                            hasCylinder = True
+                        hasPeg = False
+                        if (self.pegBoard[row][col] == "--" and self.cylinderBoard[row][col][1] != "f" and self.cylinderBoard[row][col][0] != colour):
+                            for i in range(0, len(self.player2PegStorage)):
+                                if (self.player2PegStorage[i][1] == "p"):
+                                    moves.append(Move(self.player2PegStorage, (999, i), (row, col)))
+                                    hasPeg = True
+                                    break
+                        else:
+                            hasPeg = True
+                        if (not hasCylinder):
+                            for row2 in range(0, len(self.cylinderBoard)):
+                                for col2 in range(0, len(self.cylinderBoard[row2])):
+                                    if self.cylinderBoard[row2][col2] == colour + "c":
+                                        moves.append(Move(self.cylinderBoard, (row2, col2), (row, col)))
 
-    # Gets a list of everywhere a hollow cylinder could be placed
-    def GetHollowCylinderMoves(self):
-        pass
+                        if (not hasCylinder):
+                            for row2 in range(0, len(self.cylinderBoard)):
+                                for col2 in range(0, len(self.pegBoard[row2])):
+                                    if self.cylinderBoard[row2][col2] == colour + "h":
+                                        moves.append(Move(self.cylinderBoard, (row2, col2), (row, col)))
+                        if (not hasPeg):
+                            for row2 in range(0, len(self.pegBoard)):
+                                for col2 in range(0, len(self.pegBoard[row2])):
+                                    if self.pegBoard[row2][col2] == colour + "p":
+                                        moves.append(Move(self.pegBoard, (row2, col2), (row, col)))
 
-    # Gets a list of everywhere a peg could be placed
-    def GetPegMoves(self):
-        pass
+        return moves
+
 
     #Checks if a move is legal
     def ValidateMove(self, move, pieceToMove):
@@ -186,6 +277,8 @@ class Game:
                             self.cylinderBoard[row][col + i][1] == "h")):
                         successCount += 1
             if successCount == 5:
+                for i in range(0, 5):
+                    self.winCoords.append((row, col+i))
                 return True
 
             #Check yellow
@@ -199,6 +292,8 @@ class Game:
                     if winCondition[1][i] == "-" or (self.cylinderBoard[row][col+i][0] == colour and (self.cylinderBoard[row][col+i][1] == winCondition[1][i] or self.cylinderBoard[row][col+i][1] == "h")):
                         successCount += 1
             if successCount == 5:
+                for i in range(0, 5):
+                    self.winCoords.append((row, col+i))
                 return True
 
 
@@ -218,6 +313,8 @@ class Game:
                             self.cylinderBoard[row + i][col][1] == "h")):
                         successCount += 1
             if successCount == 5:
+                for i in range(0, 5):
+                    self.winCoords.append((row + i, col))
                 return True
 
             # Check yellow
@@ -230,12 +327,13 @@ class Game:
                     if winCondition[1][i] == "-" or (self.cylinderBoard[row + i][col][0] == colour and (self.cylinderBoard[row + i][col][1] == winCondition[1][i] or self.cylinderBoard[row+i][col][1] == "h")):
                         successCount += 1
             if successCount == 5:
+                for i in range(0, 5):
+                    self.winCoords.append((row + i, col))
                 return True
 
 
     def CheckCoordPosDiagonal(self, row, col):
         # Check for each pattern
-        print(row, col)
         for winCondition in self.winConditions:
             # Check red
             colour = "r"
@@ -247,6 +345,8 @@ class Game:
                     if winCondition[1][i] == "-" or (self.cylinderBoard[row + i][col+i][0] == colour and (self.cylinderBoard[row + i][col+i][1] == winCondition[1][i] or self.cylinderBoard[row+i][col+i][1] == "h")):
                         successCount += 1
             if successCount == 5:
+                for i in range(0, 5):
+                    self.winCoords.append((row + i, col+i))
                 return True
 
             # Check yellow
@@ -259,6 +359,8 @@ class Game:
                     if winCondition[1][i] == "-" or (self.cylinderBoard[row + i][col+i][0] == colour and (self.cylinderBoard[row + i][col+i][1] == winCondition[1][i] or self.cylinderBoard[row+i][col+i][1] == "h")):
                         successCount += 1
             if successCount == 5:
+                for i in range(0, 5):
+                    self.winCoords.append((row + i, col+i))
                 return True
 
 
@@ -275,6 +377,8 @@ class Game:
                     if winCondition[1][i] == "-" or (self.cylinderBoard[row + i][col-i][0] == colour and (self.cylinderBoard[row + i][col-i][1] == winCondition[1][i] or self.cylinderBoard[row+i][col-i][1] == "h")):
                         successCount += 1
             if successCount == 5:
+                for i in range(0, 5):
+                    self.winCoords.append((row + i, col-i))
                 return True
 
             # Check yellow
@@ -287,6 +391,8 @@ class Game:
                     if winCondition[1][i] == "-" or (self.cylinderBoard[row + i][col-i][0] == colour and (self.cylinderBoard[row + i][col-i][1] == winCondition[1][i] or self.cylinderBoard[row+i][col-i][1] == "h")):
                         successCount += 1
             if successCount == 5:
+                for i in range(0, 5):
+                    self.winCoords.append((row + i, col-i))
                 return True
 
 #Used to represent an individual move
@@ -305,6 +411,14 @@ class Move:
             self.pieceToMove = startArray[self.startRow][self.startCol]
         except:
             self.pieceToMove = startArray[self.startCol]
+
+class EndPosMove:
+    def __init__(self, pieceToMove, endCoord):
+
+        #The position on the board the piece is being moved to
+        self.endRow = endCoord[0]
+        self.endCol = endCoord[1]
+        self.pieceToMove = pieceToMove
 
 #Handles connecting to a server and sending/recieving data
 class Network:
