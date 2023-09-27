@@ -8,13 +8,13 @@ class AI:
         self.difficulty = AIDifficulty
         #A table used for helping rate positions, to encourage the AI to play centrally - for use in ScoreBoard()
         self.positionsTable= [
-            [0, 1, 1, 1, 1, 1, 0],
-            [1, 1, 2, 2, 2, 1, 1],
-            [1, 2, 2, 3, 2, 2, 1],
+            [1, 1, 1, 1, 1, 1, 1],
+            [1, 2, 2, 2, 2, 2, 1],
+            [1, 2, 3, 3, 3, 2, 1],
             [1, 2, 3, 4, 3, 2, 1],
-            [1, 2, 2, 3, 2, 2, 1],
-            [1, 1, 2, 2, 2, 1, 1],
-            [0, 1, 1, 1, 1, 1, 0]
+            [1, 2, 3, 3, 3, 2, 1],
+            [1, 2, 2, 2, 2, 2, 1],
+            [1, 1, 1, 1, 1, 1, 1]
         ]
         self.positionDamping = 0.01
         self.winConditions = [(["p", "-", "-", "-", "p"], ["-", "c", "c", "c", "-"]),
@@ -56,18 +56,33 @@ class AI:
     def ScoreBoard(self, gs):
         #has someone won?
         if gs.CheckForWin():
-            # if the AI lost this is bad, return a big negative score
+            # if the AI won, this is good, return a big negative score (as the ai is negative)
             if (gs.pegBoard[gs.winCoords[0][0]][gs.winCoords[0][1]][0] == "r"):
                 return -999999
-            # if the AI won, this is good, return a big score
+            # if the AI lost, this is bad, return a big score (as the player is postive)
             else:
                 return 999999
+        #No one has won so
         score = 0
-        for i in range(1, 5):
+        for i in range(5, 0, -1):
             if (self.CountPossiblePatterns(i, "y", gs)):
                 score += i * i * i
+                break
+        for i in range(5, 0, -1):
             if (self.CountPossiblePatterns(i, "r", gs)):
                 score -= i * i * i
+                break
+        for row in range(1, len(gs.pegBoard)-1):
+            for col in range(1, len(gs.pegBoard[row])-1):
+                if (gs.pegBoard[row][col][0] == "r"):
+                    score -= self.positionsTable[row][col] * self.positionDamping
+                elif (gs.pegBoard[row][col][0] == "y"):
+                    score += self.positionsTable[row][col] * self.positionDamping
+                if (gs.cylinderBoard[row][col][0] == "r"):
+                    score -= self.positionsTable[row][col] * self.positionDamping
+                elif (gs.cylinderBoard[row][col][0] == "y"):
+                    score += self.positionsTable[row][col] * self.positionDamping
+
         return score
 
 #Check to see if a player has won
