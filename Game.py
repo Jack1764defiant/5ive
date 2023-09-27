@@ -5,6 +5,8 @@ import pickle
 #Represents a game, handles making moves
 class Game:
     def __init__(self, main):
+        #y stands for yellow, r for red.
+        #c stands for cylinder, h for hollow cylinder and p for peg.
         #This represents the section of the board on which pegs can be placed
         self.pegBoard = [
             ["--", "--", "--", "--", "--", "--", "--"],
@@ -117,8 +119,8 @@ class Game:
         # Loop through every position on the board
         for row in range(0, len(self.pegBoard)):
             for col in range(0, len(self.pegBoard[row])):
-                if (self.pegBoard[row][col] == "--" or self.pegBoard[row][col][0] == colour) and (
-                        self.cylinderBoard[row][col] == "--" or self.pegBoard[row][col] == colour + "h"):
+                if (self.pegBoard[row][col] == "--" or (self.cylinderBoard[row][col][0] != colour and self.cylinderBoard[row][col][1] == "h")) and (
+                        self.cylinderBoard[row][col] == "--" or self.pegBoard[row][col][0] != colour):
                     # this slot on the board is available
                     if (colour == "y"):
                         hasCylinder = False
@@ -209,6 +211,17 @@ class Game:
     #Checks if a move is legal
     def ValidateMove(self, move, pieceToMove):
         # If the piece is a peg
+        if (move.startArray == self.cylinderBoard):
+            if (self.player1Turn and self.player1CylinderStorage == ["--", "--", "--", "--", "--", "--", "--", "--"]) or (not self.player1Turn and self.player2CylinderStorage == ["--", "--", "--", "--", "--", "--", "--", "--"]):
+                pass
+            else:
+                return False
+        elif (move.startArray == self.pegBoard):
+            if (self.player1Turn and self.player1PegStorage == ["--", "--", "--", "--", "--", "--", "--", "--"]) or (not self.player1Turn and self.player2PegStorage == ["--", "--", "--", "--", "--", "--", "--", "--"]):
+                pass
+            else:
+                return False
+
         if (pieceToMove[1] == "p"):
             #Check that the ending destination is either empty or contains only a hollow cylinder of the opposite colour
             if ((self.cylinderBoard[move.endRow][move.endCol] == "--" or (self.cylinderBoard[move.endRow][move.endCol][0] != pieceToMove[0] and self.cylinderBoard[move.endRow][move.endCol][1] == "h")) and self.pegBoard[move.endRow][move.endCol] == "--"):
@@ -277,6 +290,7 @@ class Game:
                             self.cylinderBoard[row][col + i][1] == "h")):
                         successCount += 1
             if successCount == 5:
+                self.winCoords = []
                 for i in range(0, 5):
                     self.winCoords.append((row, col+i))
                 return True
@@ -292,6 +306,7 @@ class Game:
                     if winCondition[1][i] == "-" or (self.cylinderBoard[row][col+i][0] == colour and (self.cylinderBoard[row][col+i][1] == winCondition[1][i] or self.cylinderBoard[row][col+i][1] == "h")):
                         successCount += 1
             if successCount == 5:
+                self.winCoords = []
                 for i in range(0, 5):
                     self.winCoords.append((row, col+i))
                 return True

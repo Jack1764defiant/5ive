@@ -33,9 +33,11 @@ class Main:
         self.colour = 1
         self.UI.colourButton.text = "Colour: yellow"
         self.currentScreen = "menu"
+        self.isFirstGameClick = True
 
     def LoadInstructions(self):
         self.currentScreen = "instructions"
+        self.isFirstGameClick = True
 
     def LoadGame(self):
         self.game = g.Game(self)
@@ -49,6 +51,7 @@ class Main:
         self.timerValue = self.UI.timeSlider.getValue()
         self.currentScreen = "game"
         self.clicks = []
+        self.isFirstGameClick = True
 
     def LoadAIGame(self):
         self.game = g.Game(self)
@@ -70,6 +73,7 @@ class Main:
         self.currentScreen = "game"
         self.clicks = []
         self.AI = AI(self.AIDifficulty)
+        self.isFirstGameClick = True
 
 
     def LoadOnlineGame(self):
@@ -84,6 +88,7 @@ class Main:
         self.timerValue = self.UI.timeSlider.getValue()
         self.currentScreen = "game"
         self.clicks = []
+        self.isFirstGameClick = True
 
     def SwitchColours(self):
         self.player1Turn = not self.player1Turn
@@ -131,6 +136,9 @@ class Main:
                         not self.game.player1Turn and not self.hasPlayer2):
                     p.display.flip()
                     self.game.MakeMove(self.AI.findBestAIMove(self.game, self.game.GetAllValidMoves("y" if self.game.player1Turn else "r")))
+                    if (self.game.CheckForWin()):
+                        if __name__ == '__main__':
+                            self.currentScreen = "lose"
             elif (self.currentScreen == "menu"):
                 self.UI.drawIntroScreen()
             elif (self.currentScreen == "win"):
@@ -205,11 +213,12 @@ class Main:
                              col = location[0] // self.UI.SLOTSIZE - 1
                              row = (location[1] // self.UI.SLOTSIZE)-2
                              self.clicks.append((row, col))
-                             if (self.game.pegBoard[row][col] == "yp" and main.player1Turn) or (self.game.pegBoard[row][col] == "rp" and not main.player1Turn):
+                             if (self.game.pegBoard[row][col] == "yp" and self.game.player1Turn) or (self.game.pegBoard[row][col] == "rp" and not self.game.player1Turn):
                                 self.clicks.append(self.game.pegBoard)
                              else:
                                 self.clicks.append(self.game.cylinderBoard)
                     elif (len(self.clicks) >= 2):
+
                         #Check that the click is within the board. If it is not, deselect any pieces and skip trying to make a move.
                         row = (location[1] / self.UI.SLOTSIZE)
                         tempCol = ((location[0] + (self.UI.SLOTSIZE // 2)) / self.UI.SLOTSIZE) - 1
@@ -231,6 +240,7 @@ class Main:
                                 continue
 
                         elif (row > 8 and row < 11):
+                            print(1)
                             # Compensate for the slots in storage being centered differently
                             col = ((location[0] + (self.UI.SLOTSIZE // 2)) // self.UI.SLOTSIZE) - 1
                             row = (location[1] // self.UI.SLOTSIZE)
@@ -240,16 +250,8 @@ class Main:
                                 # skip to the next event
                                 continue
 
-                        else:
-                            col = location[0] // self.UI.SLOTSIZE - 1
-                            row = (location[1] // self.UI.SLOTSIZE) - 2
-                            if (self.clicks[0] == (row, col)):
-                                # clear the selected piece
-                                self.clicks = []
-                                # skip to the next event
-                                continue
                         #If we have reached this point, we are not deselecting, so make a move.
-                        if row < 7 and row >= 0:
+                        if row <= 8 and row >= 0:
                             # The click is on the main board
                             col = (location[0] - self.UI.SLOTSIZE) // self.UI.SLOTSIZE
                             row = (location[1] // self.UI.SLOTSIZE) - 2
@@ -271,6 +273,9 @@ class Main:
                     #Reset the timer
                     self.timerValue = self.maxTimerTime
                     self.game.UndoMove()
+                elif e.key == p.K_h:
+                    print(self.AI.CountPossiblePatterns(self.game.pegBoard,self.game.cylinderBoard, 2, "y"))
+                    print(self.AI.CountPossiblePatterns(self.game.pegBoard, self.game.cylinderBoard, 2, "r"))
 
 
 #Handles drawing the UI
@@ -304,19 +309,19 @@ class UI:
         # Create the buttons and append them to the appropriate list
         self.exitButton = Button("Quit", 380, 350, p.Color("Blue"), self.screen, "Return to the main menu",self.main.GoToMenu, height=70, width=220, windowHeight=25)
         self.gameButtons.append(self.exitButton)
-        self.colourButton = Button("Colour: yellow", self.BOARDWIDTH / 2 - 75, 300, p.Color("Blue"), self.screen,
+        self.colourButton = Button("Colour: yellow", self.BOARDWIDTH / 2 - 75, 325, p.Color("Blue"), self.screen,
                                    "Switch colours.", self.main.SwitchColours, height=75, windowHeight=25)
         self.menuButtons.append(self.colourButton)
-        self.instructionsButton = Button("Instructions", 10, 275, p.Color("Blue"), self.screen,
+        self.instructionsButton = Button("Instructions", 10, 300, p.Color("Blue"), self.screen,
                                          "See instructions on how to play.", self.main.LoadInstructions, windowHeight=50)
         self.menuButtons.append(self.instructionsButton)
-        self.twoPlayerButton = Button("Local 2 Player", 10, 120, p.Color("Blue"), self.screen,
+        self.twoPlayerButton = Button("Local 2 Player", 10, 100, p.Color("Blue"), self.screen,
                                       "Play against another person on the same computer.", self.main.LoadGame, windowHeight=75)
         self.menuButtons.append(self.twoPlayerButton)
-        self.onlineButton = Button("Play online", self.BOARDWIDTH - 160, 120, p.Color("Blue"), self.screen,
+        self.onlineButton = Button("Play online", self.BOARDWIDTH - 160, 100, p.Color("Blue"), self.screen,
                                    "Play against another person over the internet.", self.main.LoadOnlineGame, windowHeight=75)
         self.menuButtons.append(self.onlineButton)
-        self.AIButton = Button("Play against AI", 235, 120, p.Color("Blue"), self.screen,
+        self.AIButton = Button("Play against AI", 235, 100, p.Color("Blue"), self.screen,
                                "Play a game against the computer.", self.main.LoadAIGame, windowHeight=50)
         self.menuButtons.append(self.AIButton)
 
@@ -530,8 +535,8 @@ class UI:
     def drawIntroScreen(self):
         self.screen.fill(p.Color("grey"))
         # Draw the title of the screen
-        font = p.font.SysFont("arial", 35)
-        text = font.render("Game", 1, (255, 255, 255))
+        font = p.font.SysFont("arial", 50)
+        text = font.render("5ive", 1, (255, 255, 255))
         self.screen.blit(text, ((self.screen.get_width()/2) - round(text.get_width() / 2), 10))
 
         font = p.font.SysFont("arial", 25)
@@ -625,8 +630,8 @@ class UI:
         font = p.font.SysFont("arial", 17)
 
         rules = """
-Each player has two rows of holes used to store their pieces (large cylinders, large cylinders that are hollow to allow a peg to be placed inside, and smaller pegs).
-On each go, a player places any one of his pieces from his storage rows onto the board. You can place your pegs inside your opponent's cylinders, but not inside your own, or place your hollow cylinders around your opponent's pegs but again not around your own.
+Each player has two rows used to store their pieces (large cylinders, large cylinders that are hollow to allow a peg to be placed inside, and smaller pegs).
+On each go, a player places any one of his pieces from his storage onto the board. You can place your pegs inside your opponent's cylinders, but not inside your own, or place your hollow cylinders around your opponent's pegs but not around your own.
 Once you have placed all of your cylinders from storage you can move a cylinder of yours that is on the board; equally, once you have placed all your pegs you can then move one of your pegs on the board.
 The objective is to make any one of 3 five in a row formations with pieces of your colour, vertically, horizontally or diagonally. 
 Hollow and full cylinders are equivalent in formations, even if an opponent's peg is in the cylinder. Pegs still count as pegs, even if an opponent's cylinder is around them. 
