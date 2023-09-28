@@ -328,6 +328,7 @@ class Game:
                             self.cylinderBoard[row + i][col][1] == "h")):
                         successCount += 1
             if successCount == 5:
+                self.winCoords = []
                 for i in range(0, 5):
                     self.winCoords.append((row + i, col))
                 return True
@@ -342,6 +343,7 @@ class Game:
                     if winCondition[1][i] == "-" or (self.cylinderBoard[row + i][col][0] == colour and (self.cylinderBoard[row + i][col][1] == winCondition[1][i] or self.cylinderBoard[row+i][col][1] == "h")):
                         successCount += 1
             if successCount == 5:
+                self.winCoords = []
                 for i in range(0, 5):
                     self.winCoords.append((row + i, col))
                 return True
@@ -360,6 +362,7 @@ class Game:
                     if winCondition[1][i] == "-" or (self.cylinderBoard[row + i][col+i][0] == colour and (self.cylinderBoard[row + i][col+i][1] == winCondition[1][i] or self.cylinderBoard[row+i][col+i][1] == "h")):
                         successCount += 1
             if successCount == 5:
+                self.winCoords = []
                 for i in range(0, 5):
                     self.winCoords.append((row + i, col+i))
                 return True
@@ -374,6 +377,7 @@ class Game:
                     if winCondition[1][i] == "-" or (self.cylinderBoard[row + i][col+i][0] == colour and (self.cylinderBoard[row + i][col+i][1] == winCondition[1][i] or self.cylinderBoard[row+i][col+i][1] == "h")):
                         successCount += 1
             if successCount == 5:
+                self.winCoords = []
                 for i in range(0, 5):
                     self.winCoords.append((row + i, col+i))
                 return True
@@ -392,6 +396,7 @@ class Game:
                     if winCondition[1][i] == "-" or (self.cylinderBoard[row + i][col-i][0] == colour and (self.cylinderBoard[row + i][col-i][1] == winCondition[1][i] or self.cylinderBoard[row+i][col-i][1] == "h")):
                         successCount += 1
             if successCount == 5:
+                self.winCoords = []
                 for i in range(0, 5):
                     self.winCoords.append((row + i, col-i))
                 return True
@@ -406,6 +411,7 @@ class Game:
                     if winCondition[1][i] == "-" or (self.cylinderBoard[row + i][col-i][0] == colour and (self.cylinderBoard[row + i][col-i][1] == winCondition[1][i] or self.cylinderBoard[row+i][col-i][1] == "h")):
                         successCount += 1
             if successCount == 5:
+                self.winCoords = []
                 for i in range(0, 5):
                     self.winCoords.append((row + i, col-i))
                 return True

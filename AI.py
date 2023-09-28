@@ -1,4 +1,4 @@
-
+from Game import Move
 #Generates a good move based of the board state
 class AI:
     def __init__(self, AIDifficulty):
@@ -24,7 +24,13 @@ class AI:
     def findBestAIMove(self, gs, validMoves):
         global nextMove
         nextMove = None
-        self.findMoveNegaMaxAlphaBeta(gs, validMoves, self.depth, -999, 999, 1 if gs.player1Turn else -1)
+        if (gs.pegBoard[3][3] == "--" and gs.cylinderBoard[3][3] == "--"):
+            for i in range(0, len(gs.player2CylinderStorage) - 3):
+                if (gs.player2CylinderStorage[i][1] == "c"):
+                    nextMove = Move(gs.player2CylinderStorage, (999, i), (3, 3))
+                    break
+        if (nextMove == None):
+            self.findMoveNegaMaxAlphaBeta(gs, validMoves, self.depth, -999999999, 999999999, 1 if gs.player1Turn else -1)
         return nextMove
 
     #Returns the best move as evaluated by the NegaMax algorithm
@@ -32,7 +38,7 @@ class AI:
         global nextMove, count
         if depth <= 0:
             return self.ScoreBoard(gs) * turnMultiplier
-        maxScore = -999
+        maxScore = -999999999
         for move in validMoves:
             if (not gs.MakeMove(move)):
                 continue
@@ -72,8 +78,8 @@ class AI:
             if (self.CountPossiblePatterns(i, "r", gs)):
                 score -= i * i * i
                 break
-        for row in range(1, len(gs.pegBoard)-1):
-            for col in range(1, len(gs.pegBoard[row])-1):
+        for row in range(2, len(gs.pegBoard)-2):
+            for col in range(2, len(gs.pegBoard[row])-2):
                 if (gs.pegBoard[row][col][0] == "r"):
                     score -= self.positionsTable[row][col] * self.positionDamping
                 elif (gs.pegBoard[row][col][0] == "y"):
