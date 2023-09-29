@@ -5,6 +5,8 @@ from pygame_widgets.slider import Slider
 from pygame_widgets.textbox import TextBox
 import pygame as p
 import time
+from Game import Network, Move
+import sys
 
 class Main:
     def __init__(self):
@@ -26,6 +28,7 @@ class Main:
         self.colour = 1
         # Switch which player is going
         self.player1Turn = True
+        self.Online = False
 
 
     def GoToMenu(self):
@@ -40,7 +43,7 @@ class Main:
         self.isFirstGameClick = True
 
     def LoadGame(self):
-        self.game = g.Game(self)
+        self.game = g.Game()
         self.game.player1Turn = self.player1Turn
         #Is player 1 human or a bot?
         self.hasPlayer1 = True
@@ -54,7 +57,7 @@ class Main:
         self.isFirstGameClick = True
 
     def LoadAIGame(self):
-        self.game = g.Game(self)
+        self.game = g.Game()
         self.game.player1Turn = self.player1Turn
         # Is player 1 human or a bot?
         if (self.colour == 1):
@@ -77,7 +80,7 @@ class Main:
 
 
     def LoadOnlineGame(self):
-        self.game = g.Game(self)
+        self.game = g.Game()
         self.game.player1Turn = self.player1Turn
         # Is player 1 human or a bot?
         self.hasPlayer1 = True
@@ -89,6 +92,10 @@ class Main:
         self.currentScreen = "game"
         self.clicks = []
         self.isFirstGameClick = True
+        self.Online = True
+        self.n = Network()
+        self.updateServer = False
+        self.messageToServer = None
 
     def SwitchColours(self):
         self.player1Turn = not self.player1Turn
@@ -109,20 +116,23 @@ class Main:
         #This is the time since the last frame
         self.deltaTime = 0
         while self.isGameRunning:
-            #Calculate the time since the last frame
-            self.deltaTime = time.time() - self.timeLastFrame
-            #update the time the last frame ran at to be this frame
-            self.timeLastFrame = time.time()
-            #The timer should only update when a game is being played
-            if (self.currentScreen == "game" and ((self.hasPlayer1 and self.game.player1Turn) or (self.hasPlayer2 and not self.game.player1Turn))):
-                #set the timer value to the correct time
-                self.timerValue -= self.deltaTime
-                #If the timer has run out...
-                if (self.timerValue <= 0):
-                    #reset the timer
-                    self.timerValue = self.maxTimerTime
-                    #Switch which player is going
-                    self.game.player1Turn = not self.game.player1Turn
+            if (self.Online):
+                self.OnlineGame()
+            else:
+                #Calculate the time since the last frame
+                self.deltaTime = time.time() - self.timeLastFrame
+                #update the time the last frame ran at to be this frame
+                self.timeLastFrame = time.time()
+                #The timer should only update when a game is being played
+                if (self.currentScreen == "game" and ((self.hasPlayer1 and self.game.player1Turn) or (self.hasPlayer2 and not self.game.player1Turn))):
+                    #set the timer value to the correct time
+                    self.timerValue -= self.deltaTime
+                    #If the timer has run out...
+                    if (self.timerValue <= 0):
+                        #reset the timer
+                        self.timerValue = self.maxTimerTime
+                        #Switch which player is going
+                        self.game.player1Turn = not self.game.player1Turn
 
             clock.tick(self.MAXFPS)
             self.handleInputEvents()
@@ -147,6 +157,22 @@ class Main:
                 self.UI.drawLoseScreen(self.game)
             #update the display
             p.display.flip()
+
+
+    def CoordToString(self, coord):
+        return str(coord[0]) + "," + str(coord[1])
+
+    def OnlineGame(self):
+        try:
+            if (self.updateServer):
+                self.updateServer = False
+                tempGame = self.n.send(self.messageToServer)
+            else:
+                tempGame = self.n.send("get")
+            if (tempGame != None):
+                self.game = tempGame
+        except:
+            pass
 
     def handleInputEvents(self):
         #Get all inputs/events
@@ -255,7 +281,26 @@ class Main:
                             # The click is on the main board
                             col = (location[0] - self.UI.SLOTSIZE) // self.UI.SLOTSIZE
                             row = (location[1] // self.UI.SLOTSIZE) - 2
+                            if (self.Online):
+                                startArrayAsString = "pb"
+                                if (self.clicks[1] == self.game.pegBoard):
+                                    startArrayAsString = "pb"
+                                elif (self.clicks[1] == self.game.cylinderBoard):
+                                    startArrayAsString = "cb"
+                                elif (self.clicks[1] == self.game.player1PegStorage):
+                                    startArrayAsString = "1p"
+                                elif (self.clicks[1] == self.game.player2PegStorage):
+                                    startArrayAsString = "2p"
+                                elif (self.clicks[1] == self.game.player1CylinderStorage):
+                                    startArrayAsString = "1c"
+                                elif (self.clicks[1] == self.game.player2CylinderStorage):
+                                    startArrayAsString = "2c"
                             if (self.game.MakeMove(g.Move(self.clicks[1], self.clicks[0], (row, col)))):
+                                #Send the move to the server if online
+                                if (self.Online):
+                                    self.messageToServer = self.CoordToString(self.clicks[0]) + "," + self.CoordToString((row, col)) + "," + startArrayAsString
+                                    self.updateServer = True
+
                                 #Reset the timer for the next player's turn
                                 self.timerValue = self.maxTimerTime
                                 if (self.game.CheckForWin()):
@@ -267,7 +312,7 @@ class Main:
                     self.clicks = []
                     self.isFirstGameClick = False
 
-            elif e.type == p.KEYDOWN:
+            elif e.type == p.KEYDOWN and not self.Online:
                 # Undo a move when z is pressed
                 if e.key == p.K_z:
                     #Reset the timer

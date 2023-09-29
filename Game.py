@@ -4,7 +4,7 @@ import pickle
 
 #Represents a game, handles making moves
 class Game:
-    def __init__(self, main):
+    def __init__(self):
         #y stands for yellow, r for red.
         #c stands for cylinder, h for hollow cylinder and p for peg.
         #This represents the section of the board on which pegs can be placed
@@ -35,23 +35,23 @@ class Game:
         self.player2CylinderStorage = ["rc", "rc", "rc", "rc", "rh", "rh", "rh", "rh"]
         #A stack containing every move that has been made, for use in UndoMove()
         self.movesStack = []
-        self.main = main
         # Is it player 1s turn?
         self.player1Turn = True
         #The patterns you can make to win
         self.winConditions = [(["p", "-", "-", "-", "p"],["-", "c", "c", "c", "-"]), (["p", "-", "p", "-", "p"],["-", "c", "-", "c", "-"]), (["p", "p", "-", "p", "p"],["-", "-", "c", "-", "-"])]
         self.winCoords = []
 
-    #Carries out the input move on the boards and updates the movesStack
+    # Carries out the input move on the boards and updates the movesStack
     def MakeMove(self, move):
         # Try acting as though the array is 2D
         try:
-            #Test by getting a value that would be out of bounds on the 1D arrays I am using
+            # Test by getting a value that would be out of bounds on the 1D arrays I am using
             move.startArray[6][6]
             # If it succeeds, the array is 2D
             pieceToMove = move.startArray[move.startRow][move.startCol]
-            #Check if it is the correct turn for a yellow piece to be moved
-            if ((pieceToMove[0] == "y" and self.player1Turn) or (pieceToMove[0] == "r" and not self.player1Turn)) and self.ValidateMove(move, pieceToMove):
+            # Check if it is the correct turn for a yellow piece to be moved
+            if ((pieceToMove[0] == "y" and self.player1Turn) or (
+                    pieceToMove[0] == "r" and not self.player1Turn)) and self.ValidateMove(move, pieceToMove):
                 # Set the end location to the piece you want there
                 if (pieceToMove[1] == "p"):
                     self.pegBoard[move.endRow][move.endCol] = pieceToMove
@@ -69,7 +69,8 @@ class Game:
             # If it fails, the array is 1D, so access it only using column.
             pieceToMove = move.startArray[move.startCol]
             # Check if it is the correct turn for a red piece to be moved
-            if ((pieceToMove[0] == "y" and self.player1Turn) or (pieceToMove[0] == "r" and not self.player1Turn)) and self.ValidateMove(move, pieceToMove):
+            if ((pieceToMove[0] == "y" and self.player1Turn) or (
+                    pieceToMove[0] == "r" and not self.player1Turn)) and self.ValidateMove(move, pieceToMove):
                 # Set the end location to the piece you want there
                 if (pieceToMove[1] == "p"):
                     self.pegBoard[move.endRow][move.endCol] = pieceToMove
@@ -441,11 +442,12 @@ class EndPosMove:
         self.endCol = endCoord[1]
         self.pieceToMove = pieceToMove
 
-#Handles connecting to a server and sending/recieving data
-class Network:
+# #Handles connecting to a server and sending/recieving data
+
+class Network():
     def __init__(self):
         self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.server = "192.168.1.244"
+        self.server = "192.168.1.244"#"10.131.129.221"
 
         self.port = 5555
         self.addr = (self.server, self.port)
@@ -455,8 +457,16 @@ class Network:
         return self.p
 
     def connect(self):
-        pass
+        try:
+            self.client.connect(self.addr)
+            return self.client.recv(2048).decode()
+        except:
+            pass
 
     def send(self, data):
-        pass
-
+        try:
+            self.client.send(str.encode(data))
+            if (not "," in data):
+                return pickle.loads(self.client.recv(2048))
+        except socket.error as e:
+            print("bad" + e)

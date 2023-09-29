@@ -1,4 +1,6 @@
 from Game import Move
+import random
+import time
 #Generates a good move based of the board state
 class AI:
     def __init__(self, AIDifficulty):
@@ -24,25 +26,47 @@ class AI:
     def findBestAIMove(self, gs, validMoves):
         global nextMove
         nextMove = None
-        if (gs.pegBoard[3][3] == "--" and gs.cylinderBoard[3][3] == "--"):
+        if (len(gs.movesStack) <= 2 and gs.pegBoard[3][3] == "--" and gs.cylinderBoard[3][3] == "--"):
             for i in range(0, len(gs.player2CylinderStorage) - 3):
                 if (gs.player2CylinderStorage[i][1] == "c"):
                     nextMove = Move(gs.player2CylinderStorage, (999, i), (3, 3))
                     break
+        elif (len(gs.movesStack) <= 4 and gs.pegBoard[2][2] == "--" and gs.cylinderBoard[2][2] == "--"):
+            for i in range(0, len(gs.player2CylinderStorage) - 3):
+                if (gs.player2CylinderStorage[i][1] == "c"):
+                    nextMove = Move(gs.player2CylinderStorage, (999, i), (2, 2))
+                    break
+        elif (len(gs.movesStack) <= 4):
+            listOfCoords = [(2,3),(3,2),(4,4),(3,4),(4,3),(2,4),(4,2)]
+            coords = random.choice(listOfCoords)
+            if (gs.pegBoard[coords[0]][coords[1]] == "--" and gs.cylinderBoard[coords[0]][coords[1]] == "--"):
+                listOfCoords.remove(coords)
+                coords = random.choice(listOfCoords)
+            for i in range(0, len(gs.player2CylinderStorage) - 3):
+                if (gs.player2CylinderStorage[i][1] == "c"):
+                    nextMove = Move(gs.player2CylinderStorage, (999, i), (coords[0], coords[1]))
+                    break
         if (nextMove == None):
-            self.findMoveNegaMaxAlphaBeta(gs, validMoves, self.depth, -999999999, 999999999, 1 if gs.player1Turn else -1)
+            tempTime = time.time()
+            self.findMoveNegaMaxAlphaBeta(gs, validMoves, self.depth, -999999999, 999999999, 1 if gs.player1Turn else -1, False)
+            print(time.time() - tempTime)
         return nextMove
 
     #Returns the best move as evaluated by the NegaMax algorithm
-    def findMoveNegaMaxAlphaBeta(self, gs, validMoves, depth, alpha, beta, turnMultiplier):
+    def findMoveNegaMaxAlphaBeta(self, gs, validMoves, depth, alpha, beta, turnMultiplier, hasExtended):
         global nextMove, count
         if depth <= 0:
-            return self.ScoreBoard(gs) * turnMultiplier
+            tempScore = self.ScoreBoard(gs)
+            # if (not hasExtended and tempScore <= -5):
+            #     hasExtended = True
+            #     depth = 1
+            # else:
+            return tempScore * turnMultiplier
         maxScore = -999999999
         for move in validMoves:
             if (not gs.MakeMove(move)):
                 continue
-            score = -self.findMoveNegaMaxAlphaBeta(gs, gs.GetAllValidMoves("y" if gs.player1Turn else "r"), depth - 1, -beta, -alpha, -turnMultiplier)
+            score = -self.findMoveNegaMaxAlphaBeta(gs, gs.GetAllValidMoves("y" if gs.player1Turn else "r"), depth - 1, -beta, -alpha, -turnMultiplier, hasExtended)
             if score > maxScore:
                 maxScore = score
                 if depth == self.depth:
@@ -229,3 +253,32 @@ class AI:
                 return True
 
         return False
+
+
+
+# class Node
+#     def __init__(self, prior, turn, state):
+#         self.prior = prior
+#         self.turn = turn
+#         self.state = state.deepcopy()
+#         self.children = {}
+#         self.value = 0
+#         self.visits = 0
+#
+#     def expand(self, action_probs):
+#         # [0.5, 0, 0, 0, 0, 0.5, 0]
+#         for action, prob in enumerate(action_probs):
+#             if prob > 0:
+#                 next_state = self.state.makeMove()
+#                 self.children[action] = Node(prior=prob, turn=self.turn * -1, state=next_state)
+#
+#     def select_child(self):
+#         max_score = -99
+#         for action, child in self.children.items():
+#             score = ucb_score(self, child)
+#             if score > max_score:
+#                 selected_action = action
+#                 selected_child = child
+#                 max_score = score
+#
+#         return selected_action, selected_child
