@@ -23,9 +23,10 @@ class AI:
                               (["p", "-", "p", "-", "p"], ["-", "c", "-", "c", "-"]),
                               (["p", "p", "-", "p", "p"], ["-", "-", "c", "-", "-"])]
 
-    def findBestAIMove(self, gs, validMoves):
+    def findBestAIMove(self, gs):
         global nextMove
         nextMove = None
+        #If it is the first few moves, automatically go in or around the center without consulting the AI
         if (len(gs.movesStack) <= 2 and gs.pegBoard[3][3] == "--" and gs.cylinderBoard[3][3] == "--"):
             for i in range(0, len(gs.player2CylinderStorage) - 3):
                 if (gs.player2CylinderStorage[i][1] == "c"):
@@ -47,34 +48,36 @@ class AI:
                     nextMove = Move(gs.player2CylinderStorage, (999, i), (coords[0], coords[1]))
                     break
         if (nextMove == None):
-            tempTime = time.time()
-            self.findMoveNegaMaxAlphaBeta(gs, validMoves, self.depth, -999999999, 999999999, 1 if gs.player1Turn else -1, False)
-            print(time.time() - tempTime)
+            startTime = time.time()
+            self.findMoveNegaMaxAlphaBeta(gs, gs.GetAllValidMoves("y" if gs.player1Turn else "r"), self.depth, -999999999, 999999999, 1 if gs.player1Turn else -1)
+            print(time.time()-startTime)
         return nextMove
 
     #Returns the best move as evaluated by the NegaMax algorithm
-    def findMoveNegaMaxAlphaBeta(self, gs, validMoves, depth, alpha, beta, turnMultiplier, hasExtended):
+    def findMoveNegaMaxAlphaBeta(self, gs, validMoves, depth, alpha, beta, turnMultiplier):
         global nextMove, count
-        if depth <= 0:
-            tempScore = self.ScoreBoard(gs)
-            # if (not hasExtended and tempScore <= -5):
-            #     hasExtended = True
-            #     depth = 1
-            # else:
-            return tempScore * turnMultiplier
         maxScore = -999999999
+        #Loop through the moves
         for move in validMoves:
+            #If the move can't be made, it is probably illegal, skip this move
             if (not gs.MakeMove(move)):
                 continue
-            score = -self.findMoveNegaMaxAlphaBeta(gs, gs.GetAllValidMoves("y" if gs.player1Turn else "r"), depth - 1, -beta, -alpha, -turnMultiplier, hasExtended)
+            # The base case
+            if (depth <= 1):
+                score = self.ScoreBoard(gs) * turnMultiplier
+            else:
+                # Call itself with reduced depth
+                score = -self.findMoveNegaMaxAlphaBeta(gs, gs.GetAllValidMoves("y" if gs.player1Turn else "r"), depth - 1, -beta, -alpha, -turnMultiplier)
+            #If the move is better than that currently selected, select it
             if score > maxScore:
                 maxScore = score
                 if depth == self.depth:
                     nextMove = move
                     if score >= 999999:
-                        gs.UndoMove()
-                        return maxScore
+                        break
+            #Undo the move to revert the board to its original state.
             gs.UndoMove()
+            #Alpha-beta pruning
             if maxScore > alpha:
                 alpha = maxScore
             if alpha >= beta:
@@ -94,14 +97,18 @@ class AI:
                 return 999999
         #No one has won so
         score = 0
-        for i in range(5, 0, -1):
+        maxPattern = min((len(gs.movesStack)+1)//2,5)
+        #Calculate the largest pattern yellow has made
+        for i in range(maxPattern, 0, -1):
             if (self.CountPossiblePatterns(i, "y", gs)):
                 score += i * i * i
                 break
-        for i in range(5, 0, -1):
+        # Calculate the largest pattern red has made
+        for i in range(maxPattern, 0, -1):
             if (self.CountPossiblePatterns(i, "r", gs)):
                 score -= i * i * i
                 break
+        #Assign bonuses for pieces closer to the center
         for row in range(2, len(gs.pegBoard)-2):
             for col in range(2, len(gs.pegBoard[row])-2):
                 if (gs.pegBoard[row][col][0] == "r"):
@@ -112,7 +119,6 @@ class AI:
                     score -= self.positionsTable[row][col] * self.positionDamping
                 elif (gs.cylinderBoard[row][col][0] == "y"):
                     score += self.positionsTable[row][col] * self.positionDamping
-
         return score
 
 #Check to see if a player has won

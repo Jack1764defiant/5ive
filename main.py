@@ -5,8 +5,7 @@ from pygame_widgets.slider import Slider
 from pygame_widgets.textbox import TextBox
 import pygame as p
 import time
-from Game import Network, Move
-import sys
+from Game import Network
 
 class Main:
     def __init__(self):
@@ -94,6 +93,8 @@ class Main:
         self.isFirstGameClick = True
         self.Online = True
         self.n = Network()
+        self.isPlayer1 = str(self.n.p) == "0"
+        self.myColour = "y" if str(self.n.p) == "0" else "r"
         self.updateServer = False
         self.messageToServer = None
 
@@ -145,7 +146,7 @@ class Main:
                 if (self.game.player1Turn and not self.hasPlayer1) or (
                         not self.game.player1Turn and not self.hasPlayer2):
                     p.display.flip()
-                    self.game.MakeMove(self.AI.findBestAIMove(self.game, self.game.GetAllValidMoves("y" if self.game.player1Turn else "r")))
+                    self.game.MakeMove(self.AI.findBestAIMove(self.game))
                     if (self.game.CheckForWin()):
                         if __name__ == '__main__':
                             self.currentScreen = "lose"
@@ -164,15 +165,24 @@ class Main:
 
     def OnlineGame(self):
         try:
+            # If a move has been made, send it to the server
             if (self.updateServer):
                 self.updateServer = False
                 tempGame = self.n.send(self.messageToServer)
             else:
+                #Otherwise, get the current state of the game from the server in case the opponent made a move
                 tempGame = self.n.send("get")
             if (tempGame != None):
                 self.game = tempGame
         except:
             pass
+        #Check if somebody won (this is normally updated when you make a move, but as moves are not made from your computer this has to be udpated separately
+        if (self.game.CheckForWin() and self.currentScreen == "game"):
+                #Check if you are the colour that won
+                if (self.game.pegBoard[self.game.winCoords[0][0]][self.game.winCoords[0][1]][0] == self.myColour):
+                    self.currentScreen = "win"
+                else:
+                    self.currentScreen = "lose"
 
     def handleInputEvents(self):
         #Get all inputs/events
@@ -205,113 +215,111 @@ class Main:
                 self.AIDifficulty = self.UI.difficultySlider.getValue()
                 #Check if a game is running and try to move pieces
                 if not self.isFirstGameClick and self.currentScreen == "game" and not self.gameOver and ((self.game.player1Turn and self.hasPlayer1) or (self.hasPlayer2 and not self.game.player1Turn)):
-                    location = p.mouse.get_pos()
-                    if (len(self.clicks) == 0):
-                        # Get the vertical mouse location and convert it to a slot position
-                        row = (location[1] / self.UI.SLOTSIZE)
-                        tempCol = ((location[0] + (self.UI.SLOTSIZE // 2)) / self.UI.SLOTSIZE) - 1
-                        col = location[0] / self.UI.SLOTSIZE - 1
-                        if (row >= 11.5 or col >= 7.5 or tempCol >= 8.5):
-                            self.clicks = []
-                            continue
-                        # if it is in player 1's storage
-                        if (self.game.player1Turn and row < 2.5):
-                            # Compensate for the slots in storage being centered differently
-                            col = ((location[0] + (self.UI.SLOTSIZE // 2)) // self.UI.SLOTSIZE) - 1
-                            row = (location[1] // self.UI.SLOTSIZE)
-                            self.clicks.append((row, col))
-                            if (row == 0):
-                                self.clicks.append(self.game.player1PegStorage)
-                            else:
-                                self.clicks.append(self.game.player1CylinderStorage)
-                            # if it is in player 2's storage
-                        elif ((not self.game.player1Turn) and row > 8 and row < 11):
-                            # Compensate for the slots in storage being centered differently
-                            col = ((location[0] + (self.UI.SLOTSIZE // 2)) // self.UI.SLOTSIZE) - 1
-                            row = (location[1] // self.UI.SLOTSIZE)
-                            self.clicks.append((row, col))
-                            if (row == 10):
-                                self.clicks.append(self.game.player2PegStorage)
-                            else:
-                                self.clicks.append(self.game.player2CylinderStorage)
-                        elif row < 9 and row > 1:
-                             # The click is on the main board
-                             col = location[0] // self.UI.SLOTSIZE - 1
-                             row = (location[1] // self.UI.SLOTSIZE)-2
-                             self.clicks.append((row, col))
-                             if (self.game.pegBoard[row][col] == "yp" and self.game.player1Turn) or (self.game.pegBoard[row][col] == "rp" and not self.game.player1Turn):
-                                self.clicks.append(self.game.pegBoard)
-                             else:
-                                self.clicks.append(self.game.cylinderBoard)
-                    elif (len(self.clicks) >= 2):
-
-                        #Check that the click is within the board. If it is not, deselect any pieces and skip trying to make a move.
-                        row = (location[1] / self.UI.SLOTSIZE)
-                        tempCol = ((location[0] + (self.UI.SLOTSIZE // 2)) / self.UI.SLOTSIZE) - 1
-                        col = location[0] / self.UI.SLOTSIZE - 1
-                        if (row >= 11.5 or col >= 7.5 or tempCol >= 8.5 or row <= 2):
-                            self.clicks = []
-                            continue
-                        # Get the vertical mouse location and convert it to a slot position
-                        row = (location[1] // self.UI.SLOTSIZE)
-                        #Check if the click is on the already selected piece to deselect
-                        if (row < 2):
-                            # Compensate for the slots in storage being centered differently
-                            col = ((location[0] + (self.UI.SLOTSIZE // 2)) // self.UI.SLOTSIZE) - 1
-                            row = (location[1] // self.UI.SLOTSIZE)
-                            if (self.clicks[0] == (row, col)):
-                                #clear the selected piece
+                    if(not self.Online or (self.game.player1Turn == self.isPlayer1)):
+                        location = p.mouse.get_pos()
+                        if (len(self.clicks) == 0):
+                            # Get the vertical mouse location and convert it to a slot position
+                            row = (location[1] / self.UI.SLOTSIZE)
+                            tempCol = ((location[0] + (self.UI.SLOTSIZE // 2)) / self.UI.SLOTSIZE) - 1
+                            col = location[0] / self.UI.SLOTSIZE - 1
+                            if (row >= 11.5 or col >= 7.5 or tempCol >= 8.5):
                                 self.clicks = []
-                                #skip to the next event
                                 continue
-
-                        elif (row > 8 and row < 11):
-                            print(1)
-                            # Compensate for the slots in storage being centered differently
-                            col = ((location[0] + (self.UI.SLOTSIZE // 2)) // self.UI.SLOTSIZE) - 1
-                            row = (location[1] // self.UI.SLOTSIZE)
-                            if (self.clicks[0] == (row, col)):
-                                # clear the selected piece
+                            # if it is in player 1's storage
+                            if (self.game.player1Turn and row < 2.5):
+                                # Compensate for the slots in storage being centered differently
+                                col = ((location[0] + (self.UI.SLOTSIZE // 2)) // self.UI.SLOTSIZE) - 1
+                                row = (location[1] // self.UI.SLOTSIZE)
+                                self.clicks.append((row, col))
+                                if (row == 0):
+                                    self.clicks.append(self.game.player1PegStorage)
+                                else:
+                                    self.clicks.append(self.game.player1CylinderStorage)
+                                # if it is in player 2's storage
+                            elif ((not self.game.player1Turn) and row > 8 and row < 11):
+                                # Compensate for the slots in storage being centered differently
+                                col = ((location[0] + (self.UI.SLOTSIZE // 2)) // self.UI.SLOTSIZE) - 1
+                                row = (location[1] // self.UI.SLOTSIZE)
+                                self.clicks.append((row, col))
+                                if (row == 10):
+                                    self.clicks.append(self.game.player2PegStorage)
+                                else:
+                                    self.clicks.append(self.game.player2CylinderStorage)
+                            elif row < 9 and row > 1:
+                                 # The click is on the main board
+                                 col = location[0] // self.UI.SLOTSIZE - 1
+                                 row = (location[1] // self.UI.SLOTSIZE)-2
+                                 self.clicks.append((row, col))
+                                 if (self.game.pegBoard[row][col] == "yp" and self.game.player1Turn) or (self.game.pegBoard[row][col] == "rp" and not self.game.player1Turn):
+                                    self.clicks.append(self.game.pegBoard)
+                                 else:
+                                    self.clicks.append(self.game.cylinderBoard)
+                        elif (len(self.clicks) >= 2):
+                            #Check that the click is within the board. If it is not, deselect any pieces and skip trying to make a move.
+                            row = (location[1] / self.UI.SLOTSIZE)
+                            tempCol = ((location[0] + (self.UI.SLOTSIZE // 2)) / self.UI.SLOTSIZE) - 1
+                            col = location[0] / self.UI.SLOTSIZE - 1
+                            if (row >= 11.5 or col >= 7 or tempCol >= 8 or row <= 2):
                                 self.clicks = []
-                                # skip to the next event
                                 continue
+                            # Get the vertical mouse location and convert it to a slot position
+                            row = (location[1] // self.UI.SLOTSIZE)
+                            #Check if the click is on the already selected piece to deselect
+                            if (row < 2):
+                                # Compensate for the slots in storage being centered differently
+                                col = ((location[0] + (self.UI.SLOTSIZE // 2)) // self.UI.SLOTSIZE) - 1
+                                row = (location[1] // self.UI.SLOTSIZE)
+                                if (self.clicks[0] == (row, col)):
+                                    #clear the selected piece
+                                    self.clicks = []
+                                    #skip to the next event
+                                    continue
 
-                        #If we have reached this point, we are not deselecting, so make a move.
-                        if row <= 8 and row >= 0:
-                            # The click is on the main board
-                            col = (location[0] - self.UI.SLOTSIZE) // self.UI.SLOTSIZE
-                            row = (location[1] // self.UI.SLOTSIZE) - 2
-                            if (self.Online):
-                                startArrayAsString = "pb"
-                                if (self.clicks[1] == self.game.pegBoard):
-                                    startArrayAsString = "pb"
-                                elif (self.clicks[1] == self.game.cylinderBoard):
-                                    startArrayAsString = "cb"
-                                elif (self.clicks[1] == self.game.player1PegStorage):
-                                    startArrayAsString = "1p"
-                                elif (self.clicks[1] == self.game.player2PegStorage):
-                                    startArrayAsString = "2p"
-                                elif (self.clicks[1] == self.game.player1CylinderStorage):
-                                    startArrayAsString = "1c"
-                                elif (self.clicks[1] == self.game.player2CylinderStorage):
-                                    startArrayAsString = "2c"
-                            if (self.game.MakeMove(g.Move(self.clicks[1], self.clicks[0], (row, col)))):
-                                #Send the move to the server if online
+                            elif (row > 8 and row < 11):
+                                # Compensate for the slots in storage being centered differently
+                                col = ((location[0] + (self.UI.SLOTSIZE // 2)) // self.UI.SLOTSIZE) - 1
+                                row = (location[1] // self.UI.SLOTSIZE)
+                                if (self.clicks[0] == (row, col)):
+                                    # clear the selected piece
+                                    self.clicks = []
+                                    # skip to the next event
+                                    continue
+
+                            #If we have reached this point, we are not deselecting, so make a move.
+                            if row <= 8 and row >= 0:
+                                # The click is on the main board
+                                col = (location[0] - self.UI.SLOTSIZE) // self.UI.SLOTSIZE
+                                row = (location[1] // self.UI.SLOTSIZE) - 2
                                 if (self.Online):
-                                    self.messageToServer = self.CoordToString(self.clicks[0]) + "," + self.CoordToString((row, col)) + "," + startArrayAsString
-                                    self.updateServer = True
+                                    startArrayAsString = "pb"
+                                    if (self.clicks[1] == self.game.pegBoard):
+                                        startArrayAsString = "pb"
+                                    elif (self.clicks[1] == self.game.cylinderBoard):
+                                        startArrayAsString = "cb"
+                                    elif (self.clicks[1] == self.game.player1PegStorage):
+                                        startArrayAsString = "1p"
+                                    elif (self.clicks[1] == self.game.player2PegStorage):
+                                        startArrayAsString = "2p"
+                                    elif (self.clicks[1] == self.game.player1CylinderStorage):
+                                        startArrayAsString = "1c"
+                                    elif (self.clicks[1] == self.game.player2CylinderStorage):
+                                        startArrayAsString = "2c"
+                                if (self.game.MakeMove(g.Move(self.clicks[1], self.clicks[0], (row, col)))):
+                                    #Send the move to the server if online
+                                    if (self.Online):
+                                        self.messageToServer = self.CoordToString(self.clicks[0]) + "," + self.CoordToString((row, col)) + "," + startArrayAsString
+                                        self.updateServer = True
 
-                                #Reset the timer for the next player's turn
-                                self.timerValue = self.maxTimerTime
-                                if (self.game.CheckForWin()):
-                                    if __name__ == '__main__':
-                                        self.currentScreen = "win"
-                            self.clicks = []
+                                    #Reset the timer for the next player's turn
+                                    self.timerValue = self.maxTimerTime
+                                    if (self.game.CheckForWin()):
+                                        if __name__ == '__main__':
+                                            self.currentScreen = "win"
+                                self.clicks = []
                 #Ignore the first game click, as clicking on a button to load the game actually also carries over as a click in-game
                 elif (self.isFirstGameClick and self.currentScreen == "game"):
                     self.clicks = []
                     self.isFirstGameClick = False
-
             elif e.type == p.KEYDOWN and not self.Online:
                 # Undo a move when z is pressed
                 if e.key == p.K_z:
@@ -319,8 +327,9 @@ class Main:
                     self.timerValue = self.maxTimerTime
                     self.game.UndoMove()
                 elif e.key == p.K_h:
-                    print(self.AI.CountPossiblePatterns(self.game.pegBoard,self.game.cylinderBoard, 2, "y"))
-                    print(self.AI.CountPossiblePatterns(self.game.pegBoard, self.game.cylinderBoard, 2, "r"))
+                    print(len(self.game.GetAllValidMoves("red")))
+                    #print(self.AI.CountPossiblePatterns(self.game.pegBoard,self.game.cylinderBoard, 2, "y"))
+                    #print(self.AI.CountPossiblePatterns(self.game.pegBoard, self.game.cylinderBoard, 2, "r"))
 
 
 #Handles drawing the UI

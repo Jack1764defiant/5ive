@@ -40,6 +40,8 @@ class Game:
         #The patterns you can make to win
         self.winConditions = [(["p", "-", "-", "-", "p"],["-", "c", "c", "c", "-"]), (["p", "-", "p", "-", "p"],["-", "c", "-", "c", "-"]), (["p", "p", "-", "p", "p"],["-", "-", "c", "-", "-"])]
         self.winCoords = []
+        self.moveCacheRed = []
+        self.moveCacheYellow = []
 
     # Carries out the input move on the boards and updates the movesStack
     def MakeMove(self, move):
@@ -114,13 +116,14 @@ class Game:
         else:
             print("Attempted to undo when no moves have been made...")
 
-    # Gets a list of every legal move
-    def GetAllValidMoves(self, colour):
+
+    def GetAllMovesWithoutCaching(self, colour):
         moves = []
         # Loop through every position on the board
         for row in range(0, len(self.pegBoard)):
             for col in range(0, len(self.pegBoard[row])):
-                if (self.pegBoard[row][col] == "--" or (self.cylinderBoard[row][col][0] != colour and self.cylinderBoard[row][col][1] == "h")) and (
+                if (self.pegBoard[row][col] == "--" or (
+                        self.cylinderBoard[row][col][0] != colour and self.cylinderBoard[row][col][1] == "h")) and (
                         self.cylinderBoard[row][col] == "--" or self.pegBoard[row][col][0] != colour):
                     # this slot on the board is available
                     if (colour == "y"):
@@ -140,7 +143,8 @@ class Game:
                         else:
                             hasCylinder = True
                         hasPeg = False
-                        if (self.pegBoard[row][col] == "--" and self.cylinderBoard[row][col][1] != "f" and self.cylinderBoard[row][col][0] != colour):
+                        if (self.pegBoard[row][col] == "--" and self.cylinderBoard[row][col][1] != "f" and
+                                self.cylinderBoard[row][col][0] != colour):
                             for i in range(0, len(self.player1PegStorage)):
                                 if (self.player1PegStorage[i][1] == "p"):
                                     moves.append(Move(self.player1PegStorage, (999, i), (row, col)))
@@ -151,12 +155,7 @@ class Game:
                         if (not hasCylinder):
                             for row2 in range(0, len(self.cylinderBoard)):
                                 for col2 in range(0, len(self.cylinderBoard[row2])):
-                                    if self.cylinderBoard[row2][col2] == colour + "c":
-                                        moves.append(Move(self.cylinderBoard, (row2, col2), (row, col)))
-                        if (not hasCylinder):
-                            for row2 in range(0, len(self.cylinderBoard)):
-                                for col2 in range(0, len(self.pegBoard[row2])):
-                                    if self.cylinderBoard[row2][col2] == colour + "h":
+                                    if self.cylinderBoard[row2][col2][0] == colour:
                                         moves.append(Move(self.cylinderBoard, (row2, col2), (row, col)))
                         if (not hasPeg):
                             for row2 in range(0, len(self.pegBoard)):
@@ -181,7 +180,8 @@ class Game:
                         else:
                             hasCylinder = True
                         hasPeg = False
-                        if (self.pegBoard[row][col] == "--" and self.cylinderBoard[row][col][1] != "f" and self.cylinderBoard[row][col][0] != colour):
+                        if (self.pegBoard[row][col] == "--" and self.cylinderBoard[row][col][1] != "f" and
+                                self.cylinderBoard[row][col][0] != colour):
                             for i in range(0, len(self.player2PegStorage)):
                                 if (self.player2PegStorage[i][1] == "p"):
                                     moves.append(Move(self.player2PegStorage, (999, i), (row, col)))
@@ -191,21 +191,30 @@ class Game:
                             hasPeg = True
                         if (not hasCylinder):
                             for row2 in range(0, len(self.cylinderBoard)):
-                                for col2 in range(0, len(self.cylinderBoard[row2])):
-                                    if self.cylinderBoard[row2][col2] == colour + "c":
-                                        moves.append(Move(self.cylinderBoard, (row2, col2), (row, col)))
-
-                        if (not hasCylinder):
-                            for row2 in range(0, len(self.cylinderBoard)):
                                 for col2 in range(0, len(self.pegBoard[row2])):
-                                    if self.cylinderBoard[row2][col2] == colour + "h":
+                                    if self.cylinderBoard[row2][col2][0] == colour:
                                         moves.append(Move(self.cylinderBoard, (row2, col2), (row, col)))
                         if (not hasPeg):
                             for row2 in range(0, len(self.pegBoard)):
                                 for col2 in range(0, len(self.pegBoard[row2])):
                                     if self.pegBoard[row2][col2] == colour + "p":
                                         moves.append(Move(self.pegBoard, (row2, col2), (row, col)))
+        if (colour == "r"):
+            self.moveCacheRed = moves
+        else:
+            self.moveCacheYellow = moves
+        return moves
 
+
+    # Gets a list of every legal move
+    def GetAllValidMoves(self, colour):
+        if (len(self.moveCacheYellow) and colour == "y") == 0 or (len(self.moveCacheRed) == 0 and colour == "r") or len(self.movesStack) >= 16:
+            moves = self.GetAllMovesWithoutCaching(colour)
+        else:
+            if (colour == "y"):
+                moves = self.moveCacheYellow
+            else:
+                moves = self.moveCacheRed
         return moves
 
 
@@ -249,6 +258,9 @@ class Game:
 
     #Check to see if a player has won
     def CheckForWin(self):
+        #Not enough moves have been made for either player to possibly win
+        if (len(self.movesStack) <=8):
+            return False
         #Check verticals
         for row in range(0, len(self.pegBoard)-4):
             for col in range(0, len(self.pegBoard[row])):
@@ -419,7 +431,7 @@ class Game:
 
 #Used to represent an individual move
 class Move:
-    def __init__(self, startArray, startCoord, endCoord):
+    def __init__(self, startArray, startCoord, endCoord, pieceToMove = ""):
         #The array the piece is being removed from
         self.startArray = startArray
         #The position in the array the piece is being removed from
@@ -428,26 +440,23 @@ class Move:
         #The position on the board the piece is being moved to
         self.endRow = endCoord[0]
         self.endCol = endCoord[1]
-        self.pieceToMove = "--"
-        try:
-            self.pieceToMove = startArray[self.startRow][self.startCol]
-        except:
-            self.pieceToMove = startArray[self.startCol]
-
-class EndPosMove:
-    def __init__(self, pieceToMove, endCoord):
-
-        #The position on the board the piece is being moved to
-        self.endRow = endCoord[0]
-        self.endCol = endCoord[1]
         self.pieceToMove = pieceToMove
+        if (self.pieceToMove == ""):
+            try:
+                self.pieceToMove = startArray[self.startRow][self.startCol]
+            except:
+                self.pieceToMove = startArray[self.startCol]
 
-# #Handles connecting to a server and sending/recieving data
 
+    def __str__(self):
+        return str((self.startRow, self.startCol)) + str((self.endRow, self.endCol)) + self.pieceToMove
+
+
+#Handles connecting to a server and sending/recieving data
 class Network():
     def __init__(self):
         self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.server = "192.168.1.244"#"10.131.129.221"
+        self.server = "10.131.129.215"#"192.168.1.244"
 
         self.port = 5555
         self.addr = (self.server, self.port)
@@ -469,4 +478,4 @@ class Network():
             if (not "," in data):
                 return pickle.loads(self.client.recv(2048))
         except socket.error as e:
-            print("bad" + e)
+            print(e)

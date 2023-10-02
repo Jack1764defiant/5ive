@@ -1,92 +1,100 @@
 from Game import Game, Move
 import socket
 from _thread import *
-import sys
 import pickle
-
-# server = "10.131.129.221"#"192.168.1.244"
-import socket
-from _thread import *
-import sys
-import pickle
-
-server = "192.168.1.244"#"10.131.129.221"
+#get IP address of the machine this is running on to set up server
+server = str(socket.gethostbyname(socket.gethostname()))
+print(server)
+#The port used
 port = 5555
 
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
+#Bind the server to the port
 try:
     s.bind((server, port))
 except socket.error as e:
     print(str(e))
-
+#Wait for a connection
 s.listen()
 print("Waiting for a connection, server started.")
 
 connected = set()
+#Dictionary of active games
 games = {}
+#Amount of active ids (players)
 idCount = 0
 
-def threadedClient(conn, p, gameId):
+#A game thread that handles sending and recieving data
+def threadedClient(connection, player, gameId):
     global idCount
-    conn.send(str.encode(str(p)))
-    reply = ""
+    #Send confirmation of connection
+    connection.send(str.encode(str(player)))
     while True:
         try:
-            data = conn.recv(4096).decode()
-
+            #recieve data
+            data = connection.recv(4096).decode()
+            #Get which game the player we are recieving data from is playing
             if gameId in games:
                 game = games[gameId]
-
-                if data is None or not data:
+                #If the data is empty, something has gone wrong, close the connection
+                if data is None:
                     break
                 else:
+                    #decode the data
                     # Example of data = "1,1,6,6,1c" first 2 numbers are startCoords, second 2 endCoords, last coord represents a startArray
+                    dataList = data.split(",")
                     if ("," in data):
-                        print(data)
+                        #Decode the startArray in the data
                         startArray = game.pegBoard
-                        if (data[8:10] == "1c"):
+                        startArrayCode = dataList[4][:2]
+                        if (startArrayCode == "1c"):
                             startArray = game.player1CylinderStorage
-                        elif (data[8:10] == "2c"):
+                        elif (startArrayCode == "2c"):
                             startArray = game.player2CylinderStorage
-                        elif (data[8:10] == "1p"):
+                        elif (startArrayCode == "1p"):
                             startArray = game.player1PegStorage
-                        elif (data[8:10] == "2p"):
+                        elif (startArrayCode == "2p"):
                             startArray = game.player2PegStorage
-                        elif (data[8:10] == "cb"):
+                        elif (startArrayCode == "cb"):
                             startArray = game.cylinderBoard
-                        elif (data[8:10] == "pb"):
+                        elif (startArrayCode == "pb"):
                             startArray = game.pegBoard
-                        game.MakeMove(Move(startArray, (int(data[0]), int(data[2])), (int(data[4]), int(data[6]))))
-                    conn.sendall(pickle.dumps(game))
+                        #Make the move send
+                        game.MakeMove(Move(startArray, (int(dataList[0]), int(dataList[1])), (int(dataList[2]), int(dataList[3]))))
+                    #Send the updated game back to the players
+                    connection.sendall(pickle.dumps(game))
             else:
                 break
         except error as e:
             print(e)
             break
 
-    print("Lost connection.")
+    print("Lost connection with game " + str(gameId))
 
     try:
         del games[gameId]
-        print("Closing game", gameId)
+        print("Closing game " + str(gameId))
     except:
         pass
     idCount -= 1
-    conn.close()
+    connection.close()
 
 
 
 while True:
-    conn, addr = s.accept()
-    print("Connected to", addr)
+    #Accepted an attempt to join the server
+    connection, address = s.accept()
+    print("Server connected to address " + str(address))
     idCount += 1
-    p = 0
+    player = 0
     gameId = (idCount-1)//2
+    #if there are no players waiting, create a new game
     if idCount % 2 == 1:
         games[gameId] = Game()
-        print("Creating new game.")
+        print("Initialising game " + str(gameId))
+    #Else, add them to the existing game with a player waiting
     else:
         games[gameId].ready = True
-        p = 1
-    start_new_thread(threadedClient, (conn, p, gameId))
+        player = 1
+    #Start the game thread
+    start_new_thread(threadedClient, (connection, player, gameId))
