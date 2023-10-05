@@ -23,11 +23,13 @@ class Main:
         #The maximum timer value
         self.maxTimerTime = 0
         #The difficulty of the AI if you are playing against it
+        self.AI = None
         self.AIDifficulty = 1
         self.colour = 1
         # Switch which player is going
         self.player1Turn = True
         self.Online = False
+        self.hintMove = None
 
 
     def GoToMenu(self):
@@ -36,6 +38,7 @@ class Main:
         self.UI.colourButton.text = "Colour: yellow"
         self.currentScreen = "menu"
         self.isFirstGameClick = True
+        self.hintMove = None
 
     def LoadInstructions(self):
         self.currentScreen = "instructions"
@@ -77,6 +80,10 @@ class Main:
         self.AI = AI(self.AIDifficulty)
         self.isFirstGameClick = True
 
+    #Gets a suggests a move
+    def GetHint(self):
+        if (self.AI == None): self.AI = AI(2)
+        self.hintMove = self.AI.findBestAIMove(self.game)
 
     def LoadOnlineGame(self):
         self.game = g.Game()
@@ -93,8 +100,8 @@ class Main:
         self.isFirstGameClick = True
         self.Online = True
         self.n = Network()
-        self.isPlayer1 = str(self.n.p) == "0"
-        self.myColour = "y" if str(self.n.p) == "0" else "r"
+        self.isPlayer1 = str(self.n.player) == "0"
+        self.myColour = "y" if str(self.n.player) == "0" else "r"
         self.updateServer = False
         self.messageToServer = None
 
@@ -147,6 +154,8 @@ class Main:
                         not self.game.player1Turn and not self.hasPlayer2):
                     p.display.flip()
                     self.game.MakeMove(self.AI.findBestAIMove(self.game))
+                    self.deltaTime = 0
+                    self.timeLastFrame = time.time()
                     if (self.game.CheckForWin()):
                         if __name__ == '__main__':
                             self.currentScreen = "lose"
@@ -159,10 +168,13 @@ class Main:
             #update the display
             p.display.flip()
 
-
+    #Convert a coordinate into a string for sending to the server
     def CoordToString(self, coord):
         return str(coord[0]) + "," + str(coord[1])
 
+
+
+    #Recieves data from and transmits data to the server to keep everything updated
     def OnlineGame(self):
         try:
             # If a move has been made, send it to the server
@@ -176,7 +188,7 @@ class Main:
                 self.game = tempGame
         except:
             pass
-        #Check if somebody won (this is normally updated when you make a move, but as moves are not made from your computer this has to be udpated separately
+        #Check if somebody won (this is normally updated when you make a move, but as moves are not made from your computer this has to be updated separately
         if (self.game.CheckForWin() and self.currentScreen == "game"):
                 #Check if you are the colour that won
                 if (self.game.pegBoard[self.game.winCoords[0][0]][self.game.winCoords[0][1]][0] == self.myColour):
@@ -184,6 +196,7 @@ class Main:
                 else:
                     self.currentScreen = "lose"
 
+    #Handle all inputs - mouse clicks, key presses etc
     def handleInputEvents(self):
         #Get all inputs/events
         events = p.event.get()
@@ -305,6 +318,7 @@ class Main:
                                     elif (self.clicks[1] == self.game.player2CylinderStorage):
                                         startArrayAsString = "2c"
                                 if (self.game.MakeMove(g.Move(self.clicks[1], self.clicks[0], (row, col)))):
+                                    self.hintMove = None
                                     #Send the move to the server if online
                                     if (self.Online):
                                         self.messageToServer = self.CoordToString(self.clicks[0]) + "," + self.CoordToString((row, col)) + "," + startArrayAsString
@@ -321,15 +335,13 @@ class Main:
                     self.clicks = []
                     self.isFirstGameClick = False
             elif e.type == p.KEYDOWN and not self.Online:
-                # Undo a move when z is pressed
-                if e.key == p.K_z:
+                # Undo a move when z is pressed (does not work online or against the AI)
+                if e.key == p.K_z and (not self.Online) and self.hasPlayer1 and self.hasPlayer2:
                     #Reset the timer
                     self.timerValue = self.maxTimerTime
+                    #Undo the move
                     self.game.UndoMove()
-                elif e.key == p.K_h:
-                    print(len(self.game.GetAllValidMoves("red")))
-                    #print(self.AI.CountPossiblePatterns(self.game.pegBoard,self.game.cylinderBoard, 2, "y"))
-                    #print(self.AI.CountPossiblePatterns(self.game.pegBoard, self.game.cylinderBoard, 2, "r"))
+
 
 
 #Handles drawing the UI
@@ -383,8 +395,12 @@ class UI:
                                  self.main.GoToMenu, height=70, width=220, windowHeight=25)
         self.winOrLoseButtons.append(self.quitButton)
         self.backButton = Button("Back", 388, 350, p.Color("Blue"), self.screen, "Return to the main menu",
-                                 self.main.GoToMenu, height=70, width=220, windowHeight=25)
+                                 self.main.GoToMenu, height=60, width=220, windowHeight=25)
         self.instructionsButtons.append(self.backButton)
+
+        self.hintButton = Button("Hint", 380, 280, p.Color("Blue"), self.screen, "Have the computer suggest a move",
+                                 self.main.GetHint, height=60, width=220)
+        self.gameButtons.append(self.hintButton)
 
     #Generate all needed sliders so they can be drawn later
     def InitSliders(self):
@@ -404,6 +420,7 @@ class UI:
     def drawGameScreen(self, game):
         self.screen.fill(p.Color("white"))
         self.drawBoard()
+        self.drawHint()
         self.drawPieces(game)
         self.drawPanel()
         self.currentButtonsToUpdate = self.gameButtons
@@ -430,58 +447,58 @@ class UI:
         #Draw the patterns
         #Pattern 1
         #Draw the background
-        p.draw.rect(self.screen, p.Color("white"), p.Rect(380, 115, 220, 40))
+        p.draw.rect(self.screen, p.Color("white"), p.Rect(380, 110, 220, 40))
         #Draw the pattern
-        p.draw.circle(self.screen, p.Color("grey"), (410, 135), self.SLOTSIZE / 2)
-        p.draw.circle(self.screen, p.Color("red"), (410, 135), self.PEGSIZE / 2)
+        p.draw.circle(self.screen, p.Color("grey"), (410, 130), self.SLOTSIZE / 2)
+        p.draw.circle(self.screen, p.Color("red"), (410, 130), self.PEGSIZE / 2)
 
-        p.draw.circle(self.screen, p.Color("red"), (450, 135), self.SLOTSIZE / 2)
+        p.draw.circle(self.screen, p.Color("red"), (450, 130), self.SLOTSIZE / 2)
 
-        p.draw.circle(self.screen, p.Color("grey"), (490, 135), self.SLOTSIZE / 2)
-        p.draw.circle(self.screen, p.Color("red"), (490, 135), self.PEGSIZE / 2)
+        p.draw.circle(self.screen, p.Color("grey"), (490, 130), self.SLOTSIZE / 2)
+        p.draw.circle(self.screen, p.Color("red"), (490, 130), self.PEGSIZE / 2)
 
-        p.draw.circle(self.screen, p.Color("red"), (530, 135), self.SLOTSIZE / 2)
+        p.draw.circle(self.screen, p.Color("red"), (530, 130), self.SLOTSIZE / 2)
 
-        p.draw.circle(self.screen, p.Color("grey"), (570, 135), self.SLOTSIZE / 2)
-        p.draw.circle(self.screen, p.Color("red"), (570, 135), self.PEGSIZE / 2)
+        p.draw.circle(self.screen, p.Color("grey"), (570, 130), self.SLOTSIZE / 2)
+        p.draw.circle(self.screen, p.Color("red"), (570, 130), self.PEGSIZE / 2)
 
         # Pattern 2
         # Draw the background
-        p.draw.rect(self.screen, p.Color("white"), p.Rect(380, 195, 220, 40))
+        p.draw.rect(self.screen, p.Color("white"), p.Rect(380, 170, 220, 40))
         # Draw the pattern
-        p.draw.circle(self.screen, p.Color("grey"), (410, 215), self.SLOTSIZE / 2)
-        p.draw.circle(self.screen, p.Color("red"), (410, 215), self.PEGSIZE / 2)
+        p.draw.circle(self.screen, p.Color("grey"), (410, 190), self.SLOTSIZE / 2)
+        p.draw.circle(self.screen, p.Color("red"), (410, 190), self.PEGSIZE / 2)
 
-        p.draw.circle(self.screen, p.Color("red"), (450, 215), self.SLOTSIZE / 2)
+        p.draw.circle(self.screen, p.Color("red"), (450, 190), self.SLOTSIZE / 2)
 
-        p.draw.circle(self.screen, p.Color("red"), (490, 215), self.SLOTSIZE / 2)
+        p.draw.circle(self.screen, p.Color("red"), (490, 190), self.SLOTSIZE / 2)
 
-        p.draw.circle(self.screen, p.Color("red"), (530, 215), self.SLOTSIZE / 2)
+        p.draw.circle(self.screen, p.Color("red"), (530, 190), self.SLOTSIZE / 2)
 
-        p.draw.circle(self.screen, p.Color("grey"), (570, 215), self.SLOTSIZE / 2)
-        p.draw.circle(self.screen, p.Color("red"), (570, 215), self.PEGSIZE / 2)
+        p.draw.circle(self.screen, p.Color("grey"), (570, 190), self.SLOTSIZE / 2)
+        p.draw.circle(self.screen, p.Color("red"), (570, 190), self.PEGSIZE / 2)
 
         # Pattern 3
         # Draw the background
-        p.draw.rect(self.screen, p.Color("white"), p.Rect(380, 275, 220, 40))
+        p.draw.rect(self.screen, p.Color("white"), p.Rect(380, 230, 220, 40))
         # Draw the pattern
-        p.draw.circle(self.screen, p.Color("grey"), (410, 295), self.SLOTSIZE / 2)
-        p.draw.circle(self.screen, p.Color("red"), (410, 295), self.PEGSIZE / 2)
+        p.draw.circle(self.screen, p.Color("grey"), (410, 250), self.SLOTSIZE / 2)
+        p.draw.circle(self.screen, p.Color("red"), (410, 250), self.PEGSIZE / 2)
 
-        p.draw.circle(self.screen, p.Color("grey"), (450, 295), self.SLOTSIZE / 2)
-        p.draw.circle(self.screen, p.Color("red"), (450, 295), self.PEGSIZE / 2)
+        p.draw.circle(self.screen, p.Color("grey"), (450, 250), self.SLOTSIZE / 2)
+        p.draw.circle(self.screen, p.Color("red"), (450, 250), self.PEGSIZE / 2)
 
-        p.draw.circle(self.screen, p.Color("red"), (490, 295), self.SLOTSIZE / 2)
+        p.draw.circle(self.screen, p.Color("red"), (490, 250), self.SLOTSIZE / 2)
 
-        p.draw.circle(self.screen, p.Color("grey"), (530, 295), self.SLOTSIZE / 2)
-        p.draw.circle(self.screen, p.Color("red"), (530, 295), self.PEGSIZE / 2)
+        p.draw.circle(self.screen, p.Color("grey"), (530, 250), self.SLOTSIZE / 2)
+        p.draw.circle(self.screen, p.Color("red"), (530, 250), self.PEGSIZE / 2)
 
-        p.draw.circle(self.screen, p.Color("grey"), (570, 295), self.SLOTSIZE / 2)
-        p.draw.circle(self.screen, p.Color("red"), (570, 295), self.PEGSIZE / 2)
+        p.draw.circle(self.screen, p.Color("grey"), (570, 250), self.SLOTSIZE / 2)
+        p.draw.circle(self.screen, p.Color("red"), (570, 250), self.PEGSIZE / 2)
 
 
         #Generate and draw the button
-
+        self.hintButton.draw()
         self.exitButton.draw()
 
     #Draws the board on the screen
@@ -579,6 +596,20 @@ class UI:
                     elif game.player2CylinderStorage[c][1] == "h":
                         p.draw.circle(self.screen, p.Color("red"), ((c * self.SLOTSIZE) + self.SLOTSIZE,(r * self.SLOTSIZE) + self.SLOTSIZE / 2 + (self.SLOTSIZE * 8)), self.SLOTSIZE / 2)
                         p.draw.circle(self.screen, p.Color("grey"), ((c * self.SLOTSIZE) + self.SLOTSIZE,(r * self.SLOTSIZE) + self.SLOTSIZE / 2 + (self.SLOTSIZE * 8)), self.PEGSIZE / 2)
+
+    def drawHint(self):
+        if self.main.hintMove != None:
+            if (self.main.hintMove.pieceToMove[1] == "p"):
+                p.draw.circle(self.screen, p.Color("green"), (
+                    (self.main.hintMove.endCol * self.SLOTSIZE) + self.SLOTSIZE * 1.5, (self.main.hintMove.endRow * self.SLOTSIZE) + 5 * self.SLOTSIZE / 2), (self.PEGSIZE / 2)*1.1)
+            else:
+                p.draw.circle(self.screen, p.Color("green"), (
+                    (self.main.hintMove.endCol * self.SLOTSIZE) + self.SLOTSIZE * 1.5,
+                    (self.main.hintMove.endRow * self.SLOTSIZE) + 5 * self.SLOTSIZE / 2), (self.SLOTSIZE / 2) * 1.1)
+                if (self.main.hintMove.pieceToMove[1] == "h"):
+                    p.draw.circle(self.screen, p.Color("grey"), (
+                        (self.main.hintMove.endCol * self.SLOTSIZE) + self.SLOTSIZE * 1.5,
+                        (self.main.hintMove.endRow * self.SLOTSIZE) + 5 * self.SLOTSIZE / 2), (self.PEGSIZE / 2) * 1.1)
 
     def drawWinCoords(self, game):
         for coord in game.winCoords:

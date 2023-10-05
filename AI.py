@@ -9,7 +9,7 @@ class AI:
         #The difficulty of the AI
         self.difficulty = AIDifficulty
         #A table used for helping rate positions, to encourage the AI to play centrally - for use in ScoreBoard()
-        self.positionsTable= [
+        self.positionsTable=[
             [1, 1, 1, 1, 1, 1, 1],
             [1, 2, 2, 2, 2, 2, 1],
             [1, 2, 3, 3, 3, 2, 1],
@@ -26,31 +26,58 @@ class AI:
     def findBestAIMove(self, gs):
         global nextMove
         nextMove = None
-        #If it is the first few moves, automatically go in or around the center without consulting the AI
-        if (len(gs.movesStack) <= 2 and gs.pegBoard[3][3] == "--" and gs.cylinderBoard[3][3] == "--"):
-            for i in range(0, len(gs.player2CylinderStorage) - 3):
-                if (gs.player2CylinderStorage[i][1] == "c"):
-                    nextMove = Move(gs.player2CylinderStorage, (999, i), (3, 3))
-                    break
-        elif (len(gs.movesStack) <= 4 and gs.pegBoard[2][2] == "--" and gs.cylinderBoard[2][2] == "--"):
-            for i in range(0, len(gs.player2CylinderStorage) - 3):
-                if (gs.player2CylinderStorage[i][1] == "c"):
-                    nextMove = Move(gs.player2CylinderStorage, (999, i), (2, 2))
-                    break
-        elif (len(gs.movesStack) <= 4):
-            listOfCoords = [(2,3),(3,2),(4,4),(3,4),(4,3),(2,4),(4,2)]
-            coords = random.choice(listOfCoords)
-            if (gs.pegBoard[coords[0]][coords[1]] == "--" and gs.cylinderBoard[coords[0]][coords[1]] == "--"):
-                listOfCoords.remove(coords)
+        if (not gs.player1Turn):
+            #If it is the first few moves, automatically go in or around the center without consulting the AI
+            if (len(gs.movesStack) <= 2 and gs.pegBoard[3][3] == "--" and gs.cylinderBoard[3][3] == "--"):
+                for i in range(0, len(gs.player2CylinderStorage) - 3):
+                    if (gs.player2CylinderStorage[i][1] == "c"):
+                        nextMove = Move(gs.player2CylinderStorage, (999, i), (3, 3))
+                        break
+            elif (len(gs.movesStack) <= 4 and gs.pegBoard[2][2] == "--" and gs.cylinderBoard[2][2] == "--"):
+                for i in range(0, len(gs.player2CylinderStorage) - 3):
+                    if (gs.player2CylinderStorage[i][1] == "c"):
+                        nextMove = Move(gs.player2CylinderStorage, (999, i), (2, 2))
+                        break
+            elif (len(gs.movesStack) <= 4):
+                listOfCoords = [(2,3),(3,2),(2,4),(4,2)]
                 coords = random.choice(listOfCoords)
-            for i in range(0, len(gs.player2CylinderStorage) - 3):
-                if (gs.player2CylinderStorage[i][1] == "c"):
-                    nextMove = Move(gs.player2CylinderStorage, (999, i), (coords[0], coords[1]))
-                    break
+                if (gs.pegBoard[coords[0]][coords[1]] != "--" or gs.cylinderBoard[coords[0]][coords[1]] != "--"):
+                    listOfCoords.remove(coords)
+                    coords = random.choice(listOfCoords)
+                for i in range(0, len(gs.player2CylinderStorage) - 3):
+                    if (gs.player2CylinderStorage[i][1] == "c"):
+                        nextMove = Move(gs.player2CylinderStorage, (999, i), (coords[0], coords[1]))
+                        break
+        else:
+            # If it is the first few moves, automatically go in or around the center without consulting the AI
+            if (len(gs.movesStack) <= 2 and gs.pegBoard[3][3] == "--" and gs.cylinderBoard[3][3] == "--"):
+                for i in range(0, len(gs.player1CylinderStorage) - 3):
+                    if (gs.player2CylinderStorage[i][1] == "c"):
+                        nextMove = Move(gs.player1CylinderStorage, (999, i), (3, 3))
+                        break
+            elif (len(gs.movesStack) <= 4 and gs.pegBoard[2][2] == "--" and gs.cylinderBoard[2][2] == "--"):
+                for i in range(0, len(gs.player1CylinderStorage) - 3):
+                    if (gs.player2CylinderStorage[i][1] == "c"):
+                        nextMove = Move(gs.player1CylinderStorage, (999, i), (2, 2))
+                        break
+            elif (len(gs.movesStack) <= 4):
+                listOfCoords = [(2,2), (2, 3), (3, 2), (2, 4), (4, 2)]
+                coords = random.choice(listOfCoords)
+                i = 0;
+                while (gs.pegBoard[coords[0]][coords[1]] != "--" or gs.cylinderBoard[coords[0]][coords[1]] != "--"):
+                    listOfCoords.remove(coords)
+                    coords = random.choice(listOfCoords)
+                    i+=1
+                    if (i == 5):
+                        nextMove = None
+                        break
+                for i in range(0, len(gs.player1CylinderStorage) - 3):
+                    if (gs.player2CylinderStorage[i][1] == "c"):
+                        nextMove = Move(gs.player1CylinderStorage, (999, i), (coords[0], coords[1]))
+                        break
+        #If no default starting move has been made, consult the AI
         if (nextMove == None):
-            startTime = time.time()
             self.findMoveNegaMaxAlphaBeta(gs, gs.GetAllValidMoves("y" if gs.player1Turn else "r"), self.depth, -999999999, 999999999, 1 if gs.player1Turn else -1)
-            print(time.time()-startTime)
         return nextMove
 
     #Returns the best move as evaluated by the NegaMax algorithm
@@ -121,37 +148,36 @@ class AI:
                     score += self.positionsTable[row][col] * self.positionDamping
         return score
 
-#Check to see if a player has won
+#Count the number of patterns of a certain length a player of a specific colour has made
     def CountPossiblePatterns(self, numberInPattern, colour, game):
         #Check verticals
-        count = 0
         for row in range(0, len(game.pegBoard)-4):
             for col in range(0, len(game.pegBoard[row])):
-                if (self.CountCoordVertical(row, col,game.pegBoard, game.cylinderBoard, numberInPattern, colour, game)):
+                if (self.CountCoordVertical(row, col,game.pegBoard, game.cylinderBoard, numberInPattern, colour)):
                     return True
 
         #Check horizontals
         for row in range(0, len(game.pegBoard)):
             for col in range(0, len(game.pegBoard[row])-4):
-                if (self.CountCoordHorizontal(row, col,game.pegBoard, game.cylinderBoard, numberInPattern, colour, game)):
+                if (self.CountCoordHorizontal(row, col,game.pegBoard, game.cylinderBoard, numberInPattern, colour)):
                     return True
 
         #Check positive diagonals
         for row in range(0, len(game.pegBoard)-4):
             for col in range(0, len(game.pegBoard[row])-4):
-                if(self.CountCoordPosDiagonal(row, col,game.pegBoard, game.cylinderBoard, numberInPattern, colour, game)):
+                if(self.CountCoordPosDiagonal(row, col,game.pegBoard, game.cylinderBoard, numberInPattern, colour)):
                     return True
 
         #Check negative diagonals
         for row in range(0, len(game.pegBoard)-4):
             for col in range(4, len(game.pegBoard[row])):
-                if(self.CountCoordNegDiagonal(row, col,game.pegBoard, game.cylinderBoard, numberInPattern, colour,game )):
+                if(self.CountCoordNegDiagonal(row, col,game.pegBoard, game.cylinderBoard, numberInPattern, colour)):
                     return True
-        return count
+        return False
 
-    def CountCoordHorizontal(self, row, col, pegBoard, cylinderBoard, number, colour, game):
+    # check if there is a pattern of a certain length a player of a specific colour has made horizontally
+    def CountCoordHorizontal(self, row, col, pegBoard, cylinderBoard, number, colour):
         #Check for each pattern
-        amount = 0
         fail = False
         for winCondition in self.winConditions:
             successCount = 0
@@ -176,10 +202,9 @@ class AI:
 
         return False
 
-
-    def CountCoordVertical(self, row, col, pegBoard, cylinderBoard, number, colour, game):
+    # check if there is a pattern of a certain length a player of a specific colour has made vertically
+    def CountCoordVertical(self, row, col, pegBoard, cylinderBoard, number, colour):
         # Check for each pattern
-        amount = 0
         fail = False
         for winCondition in self.winConditions:
             successCount = 0
@@ -202,10 +227,9 @@ class AI:
 
         return False
 
-
-    def CountCoordPosDiagonal(self, row, col, pegBoard, cylinderBoard, number, colour, game):
+    # check if there is a pattern of a certain length a player of a specific colour has made diagonally (right and downwards)
+    def CountCoordPosDiagonal(self, row, col, pegBoard, cylinderBoard, number, colour):
         # Check for each pattern
-        amount = 0
         fail = False
         for winCondition in self.winConditions:
             successCount = 0
@@ -230,10 +254,9 @@ class AI:
                 return True
         return False
 
-
-    def CountCoordNegDiagonal(self, row, col, pegBoard, cylinderBoard, number, colour, game):
+    # check if there is a pattern of a certain length a player of a specific colour has made diagonally (right and upwards)
+    def CountCoordNegDiagonal(self, row, col, pegBoard, cylinderBoard, number, colour):
         # Check for each pattern
-        amount = 0
         fail = False
         for winCondition in self.winConditions:
             successCount = 0
@@ -259,32 +282,3 @@ class AI:
                 return True
 
         return False
-
-
-
-# class Node
-#     def __init__(self, prior, turn, state):
-#         self.prior = prior
-#         self.turn = turn
-#         self.state = state.deepcopy()
-#         self.children = {}
-#         self.value = 0
-#         self.visits = 0
-#
-#     def expand(self, action_probs):
-#         # [0.5, 0, 0, 0, 0, 0.5, 0]
-#         for action, prob in enumerate(action_probs):
-#             if prob > 0:
-#                 next_state = self.state.makeMove()
-#                 self.children[action] = Node(prior=prob, turn=self.turn * -1, state=next_state)
-#
-#     def select_child(self):
-#         max_score = -99
-#         for action, child in self.children.items():
-#             score = ucb_score(self, child)
-#             if score > max_score:
-#                 selected_action = action
-#                 selected_child = child
-#                 max_score = score
-#
-#         return selected_action, selected_child

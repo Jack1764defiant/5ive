@@ -18,7 +18,6 @@ except socket.error as e:
 s.listen()
 print("Waiting for a connection, server started.")
 
-connected = set()
 #Dictionary of active games
 games = {}
 #Amount of active ids (players)
@@ -70,7 +69,7 @@ def threadedClient(connection, player, gameId):
             break
 
     print("Lost connection with game " + str(gameId))
-
+    #If we lose connection with one or both players, close the game
     try:
         del games[gameId]
         print("Closing game " + str(gameId))

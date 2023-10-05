@@ -287,6 +287,7 @@ class Game:
         #If no win has been found, return false
         return False
 
+    #Check to see if someone has completed a horizontal pattern
     def CheckCoordHorizontal(self, row, col):
         #Check for each pattern
         for winCondition in self.winConditions:
@@ -324,7 +325,7 @@ class Game:
                     self.winCoords.append((row, col+i))
                 return True
 
-
+    # Check to see if someone has completed a vertical pattern
     def CheckCoordVertical(self, row, col):
         # Check for each pattern
         for winCondition in self.winConditions:
@@ -361,7 +362,7 @@ class Game:
                     self.winCoords.append((row + i, col))
                 return True
 
-
+    # Check to see if someone has completed a diagonal (positive) pattern
     def CheckCoordPosDiagonal(self, row, col):
         # Check for each pattern
         for winCondition in self.winConditions:
@@ -395,7 +396,7 @@ class Game:
                     self.winCoords.append((row + i, col+i))
                 return True
 
-
+    # Check to see if someone has completed a diagonal (negative) pattern
     def CheckCoordNegDiagonal(self, row, col):
         # Check for each pattern
         for winCondition in self.winConditions:
@@ -440,6 +441,7 @@ class Move:
         #The position on the board the piece is being moved to
         self.endRow = endCoord[0]
         self.endCol = endCoord[1]
+        #The piece being moved
         self.pieceToMove = pieceToMove
         if (self.pieceToMove == ""):
             try:
@@ -447,7 +449,7 @@ class Move:
             except:
                 self.pieceToMove = startArray[self.startCol]
 
-
+    #Convert the move to a string (for debugging)
     def __str__(self):
         return str((self.startRow, self.startCol)) + str((self.endRow, self.endCol)) + self.pieceToMove
 
@@ -456,25 +458,28 @@ class Move:
 class Network():
     def __init__(self):
         self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.server = "10.131.129.215"#"192.168.1.244"
-
+        #The IP address of the server to connect to
+        self.server = "10.131.129.18"#"192.168.1.244"
+        #The port the server uses
         self.port = 5555
         self.addr = (self.server, self.port)
-        self.p = self.connect()
-
-    def getP(self):
-        return self.p
+        #Which player you are (0 or 1)
+        self.player = self.connect()
 
     def connect(self):
         try:
+            #Connect to the server
             self.client.connect(self.addr)
+            #You recieve which player you are when connecting (0 or 1)
             return self.client.recv(2048).decode()
         except:
             pass
 
     def send(self, data):
         try:
+            #Send the data
             self.client.send(str.encode(data))
+            #If we are not sending a move, we are sending a request for the current game state, so recieve that data
             if (not "," in data):
                 return pickle.loads(self.client.recv(2048))
         except socket.error as e:
