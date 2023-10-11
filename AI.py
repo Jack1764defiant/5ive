@@ -1,13 +1,13 @@
-from Game import Move
 import random
-import time
+
+from Game import Move
+
+
 #Generates a good move based of the board state
 class AI:
     def __init__(self, AIDifficulty):
         #The depth of moves the NegaMax algorithm searches to
-        self.depth = 2
-        #The difficulty of the AI
-        self.difficulty = AIDifficulty
+        self.depth = AIDifficulty
         #A table used for helping rate positions, to encourage the AI to play centrally - for use in ScoreBoard()
         self.positionsTable=[
             [1, 1, 1, 1, 1, 1, 1],
@@ -24,7 +24,8 @@ class AI:
                               (["p", "p", "-", "p", "p"], ["-", "-", "c", "-", "-"])]
 
     def findBestAIMove(self, gs):
-        global nextMove
+        global nextMove, count
+        count = 0
         nextMove = None
         if (not gs.player1Turn):
             #If it is the first few moves, automatically go in or around the center without consulting the AI
@@ -78,6 +79,7 @@ class AI:
         #If no default starting move has been made, consult the AI
         if (nextMove == None):
             self.findMoveNegaMaxAlphaBeta(gs, gs.GetAllValidMoves("y" if gs.player1Turn else "r"), self.depth, -999999999, 999999999, 1 if gs.player1Turn else -1)
+            print("Moves skipped: " + str(count))
         return nextMove
 
     #Returns the best move as evaluated by the NegaMax algorithm
@@ -93,8 +95,21 @@ class AI:
             if (depth <= 1):
                 score = self.ScoreBoard(gs) * turnMultiplier
             else:
-                # Call itself with reduced depth
-                score = -self.findMoveNegaMaxAlphaBeta(gs, gs.GetAllValidMoves("y" if gs.player1Turn else "r"), depth - 1, -beta, -alpha, -turnMultiplier)
+                #Check if a player has already won - if someone won we do not need to go any deeper
+                if (self.depth % 2 == 0 and depth % 2 == 0):
+                    if gs.CheckForWin():
+                        # if the AI won, this is good, return a big negative score (as the ai is negative)
+                        if (gs.pegBoard[gs.winCoords[0][0]][gs.winCoords[0][1]][0] == "r"):
+                            score = -999999 * turnMultiplier
+                        # if the AI lost, this is bad, return a big score (as the player is postive)
+                        else:
+                            score = 999999 * turnMultiplier
+                    else:
+                        # Call itself with reduced depth
+                        score = -self.findMoveNegaMaxAlphaBeta(gs, gs.GetAllValidMoves("y" if gs.player1Turn else "r"),depth - 1, -beta, -alpha, -turnMultiplier)
+                else:
+                    # Call itself with reduced depth
+                    score = -self.findMoveNegaMaxAlphaBeta(gs, gs.GetAllValidMoves("y" if gs.player1Turn else "r"), depth - 1, -beta, -alpha, -turnMultiplier)
             #If the move is better than that currently selected, select it
             if score > maxScore:
                 maxScore = score
@@ -108,6 +123,7 @@ class AI:
             if maxScore > alpha:
                 alpha = maxScore
             if alpha >= beta:
+                count +=1
                 break
         return maxScore
 

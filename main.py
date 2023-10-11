@@ -249,7 +249,7 @@ class Main:
                                 else:
                                     self.clicks.append(self.game.player1CylinderStorage)
                                 # if it is in player 2's storage
-                            elif ((not self.game.player1Turn) and row > 8 and row < 11):
+                            elif ((not self.game.player1Turn) and row >= 9 and row < 11):
                                 # Compensate for the slots in storage being centered differently
                                 col = ((location[0] + (self.UI.SLOTSIZE // 2)) // self.UI.SLOTSIZE) - 1
                                 row = (location[1] // self.UI.SLOTSIZE)
@@ -405,7 +405,7 @@ class UI:
     #Generate all needed sliders so they can be drawn later
     def InitSliders(self):
         #Create the slider
-        self.difficultySlider = Slider(self.screen, self.BOARDWIDTH / 2 - 75, 270, 150, 20, min=1, max=4, step=1, colour=p.Color("white"))
+        self.difficultySlider = Slider(self.screen, self.BOARDWIDTH / 2 - 75, 270, 150, 20, min=1, max=3, step=1, colour=p.Color("white"))
         # Create the ouput box for the slider
         self.difficultyOutput = TextBox(self.screen, self.BOARDWIDTH / 2 + 40, 225, 50, 40, fontSize=30)
         self.difficultyOutput.disable()
@@ -625,8 +625,13 @@ class UI:
         self.screen.blit(text, ((self.screen.get_width()/2) - round(text.get_width() / 2), 10))
 
         font = p.font.SysFont("arial", 25)
-        text = font.render("Difficulty:", 1, (255, 255, 255))
-        self.screen.blit(text, ((self.BOARDWIDTH / 2 - 50), 230))
+        if (self.difficultySlider.getValue() == 1):
+            text = font.render("Easy", 1, (255, 255, 255))
+        elif (self.difficultySlider.getValue() == 2):
+            text = font.render("Medium", 1, (255, 255, 255))
+        elif (self.difficultySlider.getValue() == 3):
+            text = font.render("Hard", 1, (255, 255, 255))
+        self.screen.blit(text, ((self.BOARDWIDTH / 2) - round(text.get_width() / 2), 230))
 
         font = p.font.SysFont("arial", 25)
         text = font.render("Timer Duration:", 1, (255, 255, 255))
@@ -640,7 +645,7 @@ class UI:
 
         #Draw the sliders and labels
         self.difficultySlider.draw()
-        self.difficultyOutput.draw()
+        #self.difficultyOutput.draw()
 
         self.timeSlider.draw()
         self.timeOutput.draw()
