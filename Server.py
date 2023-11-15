@@ -23,7 +23,7 @@ games = {}
 #Amount of active ids (players)
 idCount = 0
 
-#A game thread that handles sending and recieving data
+#A game thread that handles sending and receiving data
 def threadedClient(connection, player, gameId):
     global idCount
     #Send confirmation of connection
@@ -32,7 +32,7 @@ def threadedClient(connection, player, gameId):
         try:
             #recieve data
             data = connection.recv(4096).decode()
-            #Get which game the player we are recieving data from is playing
+            #Get which game the player we are receiving data from is playing
             if gameId in games:
                 game = games[gameId]
                 #If the data is empty, something has gone wrong, close the connection
@@ -42,21 +42,21 @@ def threadedClient(connection, player, gameId):
                     #decode the data
                     # Example of data = "1,1,6,6,1c" first 2 numbers are startCoords, second 2 endCoords, last coord represents a startArray
                     dataList = data.split(",")
-                    if ("," in data):
+                    if "," in data:
                         #Decode the startArray in the data
                         startArray = game.pegBoard
                         startArrayCode = dataList[4][:2]
-                        if (startArrayCode == "1c"):
+                        if startArrayCode == "1c":
                             startArray = game.player1CylinderStorage
-                        elif (startArrayCode == "2c"):
+                        elif startArrayCode == "2c":
                             startArray = game.player2CylinderStorage
-                        elif (startArrayCode == "1p"):
+                        elif startArrayCode == "1p":
                             startArray = game.player1PegStorage
-                        elif (startArrayCode == "2p"):
+                        elif startArrayCode == "2p":
                             startArray = game.player2PegStorage
-                        elif (startArrayCode == "cb"):
+                        elif startArrayCode == "cb":
                             startArray = game.cylinderBoard
-                        elif (startArrayCode == "pb"):
+                        elif startArrayCode == "pb":
                             startArray = game.pegBoard
                         #Make the move send
                         game.MakeMove(Move(startArray, (int(dataList[0]), int(dataList[1])), (int(dataList[2]), int(dataList[3]))))
