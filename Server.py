@@ -3,7 +3,7 @@ import socket
 from _thread import *
 import pickle
 #get IP address of the machine this is running on to set up server
-server = str(socket.gethostbyname(socket.gethostname()))
+server = ""#str(socket.gethostbyname(socket.gethostname()))
 print(server)
 #The port used
 port = 5555

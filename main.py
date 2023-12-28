@@ -40,6 +40,8 @@ class Main:
         self.isThreading = False
         self.nextHintStorage = [None]
         self.isHintThreading = False
+        #Stores whether the timer will be used in game (must be list so it can be passed by reference.
+        self.isTimerEnabled = [True]
 
 
     def GoToMenu(self):
@@ -50,6 +52,7 @@ class Main:
         self.isFirstGameClick = True
         self.hintMove = None
         self.isThreading = False
+
 
     def LoadInstructions(self):
         self.currentScreen = "instructions"
@@ -93,7 +96,11 @@ class Main:
         self.nextMoveStorage = [None]
 
 
-    #Switch whether threading is used or not
+    #Called when the toggle timer button is clicked to change whether the timer is enabled or disabled.
+    def OnTimerButtonClick(self):
+        self.isTimerEnabled[0] = not self.isTimerEnabled[0]
+
+    #Switch whether threading is used or not (currently not in use)
     def switchThreading(self):
         self.useThreading = not self.useThreading
         if self.useThreading:
@@ -177,7 +184,7 @@ class Main:
                 #update the time the last frame ran at to be this frame
                 self.timeLastFrame = time.time()
                 #The timer should only update when a game is being played
-                if self.currentScreen == "game" and ((self.hasPlayer1 and self.game.player1Turn) or (self.hasPlayer2 and not self.game.player1Turn)):
+                if self.currentScreen == "game" and ((self.hasPlayer1 and self.game.player1Turn) or (self.hasPlayer2 and not self.game.player1Turn) and self.isTimerEnabled[0]):
                     #set the timer value to the correct time
                     self.timerValue -= self.deltaTime
                     #If the timer has run out...
@@ -186,6 +193,8 @@ class Main:
                         self.timerValue = self.maxTimerTime
                         #Switch which player is going
                         self.game.player1Turn = not self.game.player1Turn
+                if (not self.isTimerEnabled[0]):
+                    self.timerValue = self.maxTimerTime
 
             clock.tick(self.MAXFPS)
             #Handle inputs
@@ -216,7 +225,6 @@ class Main:
                             self.AIMoveThread = threading.Thread(target=self.AI.findBestAIMove, args=(self.game,self.nextMoveStorage))
                             #Start the thread
                             self.AIMoveThread.start()
-                        #print(self.nextMoveStorage[0])
                         # If the AI thread has generated a move
                         if (self.nextMoveStorage[0] != None and self.isThreading):
                             # Make the move
@@ -468,6 +476,8 @@ class UI:
         self.colourButton = Button("Colour: yellow", self.BOARDWIDTH / 2 - 75, 325, p.Color("Blue"), self.screen,
                                    "Switch colours.", self.main.SwitchColours, height=75, windowHeight=25)
         self.menuButtons.append(self.colourButton)
+        self.timerToggle = ToggleButton(self.main.isTimerEnabled, self.BOARDWIDTH -50, 220, p.Color("Blue"), p.Color("Red"), self.screen, self.main.OnTimerButtonClick, height=32, width = 32)
+        self.menuButtons.append(self.timerToggle)
         self.threadButton = Button("Threaded: True", self.BOARDWIDTH - 160, 325, p.Color("Blue"), self.screen,"Run the AI in a separate thread", self.main.switchThreading, height=75, windowHeight=25)
         self.menuButtons.append(self.threadButton)
         self.instructionsButton = Button("Instructions", 10, 300, p.Color("Blue"), self.screen,
@@ -500,9 +510,9 @@ class UI:
         self.difficultySlider = Slider(self.screen, self.BOARDWIDTH // 2 - 75, 270, 150, 20, min=1, max=3, step=1, colour=p.Color("white"))
 
         # Create the slider
-        self.timeSlider = Slider(self.screen, self.BOARDWIDTH - 175, 270, 150, 20, min=10, max=120, step=1, colour=p.Color("white"))
+        self.timeSlider = Slider(self.screen, self.BOARDWIDTH - 175, 310, 150, 20, min=10, max=120, step=1, colour=p.Color("white"))
         # Create the output box for the slider
-        self.timeOutput = TextBox(self.screen, self.BOARDWIDTH - 60, 225, 50, 40, fontSize=30)
+        self.timeOutput = TextBox(self.screen, self.BOARDWIDTH - 60, 265, 50, 40, fontSize=30)
         self.timeOutput.disable()
 
     #Draws the game screen - the board and pieces
@@ -525,20 +535,48 @@ class UI:
     def drawPanel(self):
         #Draw the panel
         p.draw.rect(self.screen, p.Color("gray"), p.Rect(370, 10, 240, 420))
-        #Draw the title of the panel
-        font = p.font.SysFont("arial", 50)
-        text = font.render("Patterns:", 1, (255, 255, 255))
-        self.screen.blit(text, (440, 25))
 
+        #if online game, draw the panel that shows whose go it is and which colour you are
+        if (self.main.Online):
+            p.draw.rect(self.screen, p.Color("black"), p.Rect(375, 20, 230, 50))
+            font = p.font.SysFont("arial", 22)
+            text = font.render("You are: " , 1, (255, 255, 255))
+            self.screen.blit(text, (378, 30))
+            if (self.main.myColour == "y"):
+                p.draw.rect(self.screen, p.Color("yellow"), p.Rect(445, 33, 20, 20))
+            else:
+                p.draw.rect(self.screen, p.Color("red"), p.Rect(445, 33, 20, 20))
+            text = font.render("Current turn:", 1, (255, 255, 255))
+            self.screen.blit(text, (478, 30))
+            if (self.main.game.player1Turn):
+                p.draw.rect(self.screen, p.Color("yellow"), p.Rect(580, 33, 20, 20))
+            else:
+                p.draw.rect(self.screen, p.Color("red"), p.Rect(580, 33, 20, 20))
+            # Draw the title of the panel
+            font = p.font.SysFont("arial", 34)
+            text = font.render("Patterns:", 1, (255, 255, 255))
+            self.screen.blit(text, (432, 69))
         #Draw the timer
-        p.draw.rect(self.screen, p.Color("black"), p.Rect(375, 20, 60, 70))
-        font = p.font.SysFont("arial", 20)
-        text = font.render("Timer", 1, (255, 255, 255))
-        self.screen.blit(text, (383, 20))
-        #Draw the timer value
-        font = p.font.SysFont("arial", 45)
-        text = font.render(str(int(self.main.timerValue)), 1, (255, 0, 0))
-        self.screen.blit(text, (405 - round(text.get_width() / 2), 37))
+        elif self.main.isTimerEnabled[0]:
+            p.draw.rect(self.screen, p.Color("black"), p.Rect(375, 20, 60, 70))
+            font = p.font.SysFont("arial", 20)
+            text = font.render("Timer", 1, (255, 255, 255))
+            self.screen.blit(text, (383, 20))
+            #Draw the timer value
+            font = p.font.SysFont("arial", 45)
+            text = font.render(str(int(self.main.timerValue)), 1, (255, 0, 0))
+            self.screen.blit(text, (405 - round(text.get_width() / 2), 37))
+            # Draw the title of the panel
+            font = p.font.SysFont("arial", 50)
+            text = font.render("Patterns:", 1, (255, 255, 255))
+            self.screen.blit(text, (440, 25))
+
+        else:
+            # Draw the title of the panel
+            font = p.font.SysFont("arial", 50)
+            text = font.render("Patterns:", 1, (255, 255, 255))
+            self.screen.blit(text, (415, 25))
+
 
         #Draw the patterns
         #Pattern 1
@@ -738,24 +776,30 @@ class UI:
         self.screen.blit(text, ((self.BOARDWIDTH / 2) - round(text.get_width() / 2), 230))
 
         font = p.font.SysFont("arial", 25)
-        text = font.render("Timer Duration:", 1, (255, 255, 255))
-        self.screen.blit(text, ((self.BOARDWIDTH - 205), 230))
 
 
-        # Set the slider labels to the sliders' values
+        # Set the slider label to the slider's value
         self.timeOutput.setText(self.timeSlider.getValue())
+        text = font.render("Timer Enabled:", 1, (255, 255, 255))
+        self.screen.blit(text, ((self.BOARDWIDTH - 195), 220))
+
+        if (self.main.isTimerEnabled[0]):
+            text = font.render("Timer Duration:", 1, (255, 255, 255))
+            self.screen.blit(text, ((self.BOARDWIDTH - 205), 270))
+            self.timeSlider.draw()
+            self.timeOutput.draw()
+
         self.currentButtonsToUpdate = self.menuButtons
 
         #Draw the sliders and labels
         self.difficultySlider.draw()
 
-        self.timeSlider.draw()
-        self.timeOutput.draw()
+
 
         # draw the buttons
         self.twoPlayerButton.draw()
         self.AIButton.draw()
-
+        self.timerToggle.draw()
         self.onlineButton.draw()
 
         self.instructionsButton.draw()
@@ -1052,6 +1096,96 @@ class Button:
             x = position[0]
             # Set the y coordinate to that of the next row.
             y += wordHeight
+
+
+#Represents a clickable, rectangular button with a text overlay
+class ToggleButton:
+    def __init__(self, value, x, y, colorWhenTrue, colorWhenFalse, win, functionToRun, width = 150, height = 100):
+        #The coordinates of the button
+        self.value = value
+        self.x = x
+        self.y = y
+        #The size of the button
+        self.width = width
+        self.height = height
+        #The color of the button
+        self.trueColor = colorWhenTrue
+        self.falseColor = colorWhenFalse
+        #The function called when the button is clicked
+        self.functionToRun = functionToRun
+        #The window the button is drawn on
+        self.win = win
+
+
+    #Draw the button to the screen
+    def draw(self):
+        #Drawing the button
+        #draw a rectangle
+        p.draw.rect(self.win, p.Color("black"), (self.x, self.y, self.width, self.height))
+        font = p.font.SysFont("comicsans", 16)
+        if (self.value[0]):
+            p.draw.rect(self.win, self.trueColor, (self.x+1, self.y+1, self.width-2, self.height-2))
+            self.drawTextOnMultipleLines((self.width, self.height), "Y", (self.x, self.y), p.Color("white"), font)
+        else:
+            p.draw.rect(self.win, self.falseColor, (self.x+1, self.y+1, self.width-2, self.height-2))
+            self.drawTextOnMultipleLines((self.width, self.height), "N", (self.x, self.y), p.Color("white"), font)
+
+    def IsCoordInside(self, pos):
+        #Get each coord from the tuple
+        x1 = pos[0]
+        y1 = pos[1]
+        #Is it inside the boundaries of the button?
+        if self.x <= x1 <= self.x + self.width and self.y <= y1 <= self.y + self.height:
+            return True
+        else:
+            return False
+
+
+    #Run when the button is clicked
+    def OnClick(self):
+        self.functionToRun()
+
+    #Run when the mouse hovers over the button
+    def OnHover(self):
+        pass
+
+    # Pygame does not default support rendering text across multiple lines so I am using this function to do so.
+    def drawTextOnMultipleLines(self, size, text, position, color, font, centerHeight=True):
+        # An array of lists of the words in each line.
+        words = []
+        for word in text.splitlines():
+            words.append(word.split(" "))
+        # The width of a space.
+        space = font.size(" ")[0]
+        width = size[0]
+        x = 0
+        y = position[1]
+        # Loop through each line
+        for line in words:
+            # Loop through each word in the line
+            for word in line:
+                wordRendered = font.render(word, 0, color)
+                wordWidth = wordRendered.get_size()[0]
+                wordHeight = wordRendered.get_size()[1]
+                if x + wordWidth >= width:
+                    # Reset the x.coordinate to the far left
+                    x = 0
+                    # Set the y coordinate to that of the next row
+                    y += wordHeight
+                # If I need to center the text as well as rendering it on multiple lines
+                if centerHeight:
+                    text_rect = wordRendered.get_rect(center=(self.x + (self.width / 2),
+                                                              self.y + (self.height / 2) + (line.index(word) - (
+                                                                          (len(line) * 0.5) - 0.5)) * 25))
+                    self.win.blit(wordRendered, text_rect)
+                else:
+                    self.win.blit(wordRendered, (x + position[0], y))
+                x += wordWidth + space
+            # Reset the x coordinate to the far left
+            x = position[0]
+            # Set the y coordinate to that of the next row.
+            y += wordHeight
+
 
 
 main = Main()
