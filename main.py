@@ -108,7 +108,7 @@ class Main:
         else:
             self.UI.threadButton.text = "Threaded: False"
 
-    #Gets a suggests a move
+    #Gets a suggested move
     def GetHint(self):
         #Check it is a player's go
         if (self.game.player1Turn and self.hasPlayer1) or ((not self.game.player1Turn) and self.hasPlayer2):
@@ -193,6 +193,7 @@ class Main:
                         self.timerValue = self.maxTimerTime
                         #Switch which player is going
                         self.game.player1Turn = not self.game.player1Turn
+                #Continuously reset the timer to prevent it counting down if it is disabled.
                 if (not self.isTimerEnabled[0]):
                     self.timerValue = self.maxTimerTime
 
@@ -538,16 +539,21 @@ class UI:
 
         #if online game, draw the panel that shows whose go it is and which colour you are
         if (self.main.Online):
+            #Draw the black background
             p.draw.rect(self.screen, p.Color("black"), p.Rect(375, 20, 230, 50))
+            #Draw the text saying which colour you are
             font = p.font.SysFont("arial", 22)
             text = font.render("You are: " , 1, (255, 255, 255))
             self.screen.blit(text, (378, 30))
+            #Draw a rectangle in the colour you are
             if (self.main.myColour == "y"):
                 p.draw.rect(self.screen, p.Color("yellow"), p.Rect(445, 33, 20, 20))
             else:
                 p.draw.rect(self.screen, p.Color("red"), p.Rect(445, 33, 20, 20))
+            #Draw the text saying whose the current turn is
             text = font.render("Current turn:", 1, (255, 255, 255))
             self.screen.blit(text, (478, 30))
+            #Draw a rectangle in the colour of the player whose turn it is
             if (self.main.game.player1Turn):
                 p.draw.rect(self.screen, p.Color("yellow"), p.Rect(580, 33, 20, 20))
             else:
@@ -559,6 +565,7 @@ class UI:
         #Draw the timer
         elif self.main.isTimerEnabled[0]:
             p.draw.rect(self.screen, p.Color("black"), p.Rect(375, 20, 60, 70))
+            #Draw the text saying timer
             font = p.font.SysFont("arial", 20)
             text = font.render("Timer", 1, (255, 255, 255))
             self.screen.blit(text, (383, 20))
@@ -570,7 +577,7 @@ class UI:
             font = p.font.SysFont("arial", 50)
             text = font.render("Patterns:", 1, (255, 255, 255))
             self.screen.blit(text, (440, 25))
-
+        #Only draw the title
         else:
             # Draw the title of the panel
             font = p.font.SysFont("arial", 50)
@@ -1098,7 +1105,7 @@ class Button:
             y += wordHeight
 
 
-#Represents a clickable, rectangular button with a text overlay
+#Represents a clickable, rectangular button toggled between true and false, showing one of two colours and either Y or N
 class ToggleButton:
     def __init__(self, value, x, y, colorWhenTrue, colorWhenFalse, win, functionToRun, width = 150, height = 100):
         #The coordinates of the button

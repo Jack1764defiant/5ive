@@ -125,8 +125,8 @@ class AI:
                 maxScore = score
                 if depth == self.depth:
                     nextMove = move
-                    if score >= 999999:
-                        break
+                    #if score >= 999999:
+                        #break
             #Undo the move to revert the board to its original state.
             gs.UndoMove()
             #Alpha-beta pruning

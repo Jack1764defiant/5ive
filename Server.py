@@ -31,7 +31,11 @@ def threadedClient(connection, player, gameId):
     while True:
         try:
             #recieve data
-            data = connection.recv(4096).decode()
+            try:
+                data = connection.recv(4096).decode()
+            except:
+                print("Player " + str(player) + " of game " + str(gameId) + " quit or lost connection.")
+                break
             #Get which game the player we are receiving data from is playing
             if gameId in games:
                 game = games[gameId]
@@ -65,7 +69,7 @@ def threadedClient(connection, player, gameId):
             else:
                 break
         except error as e:
-            print(e)
+            print(str(e))
             break
 
     print("Lost connection with game " + str(gameId))
