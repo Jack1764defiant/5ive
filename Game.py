@@ -458,7 +458,7 @@ class Network:
     def __init__(self):
         self.client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         #The IP address of the server to connect to
-        self.server = "10.131.128.226"#"192.168.1.244"#31.49.7.241
+        self.server = "31.49.7.241"#"10.131.128.226"#"192.168.1.244"#
         #The port the server uses
         self.port = 5555
         self.addr = (self.server, self.port)

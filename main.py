@@ -477,7 +477,7 @@ class UI:
         self.colourButton = Button("Colour: yellow", self.BOARDWIDTH / 2 - 75, 325, p.Color("Blue"), self.screen,
                                    "Switch colours.", self.main.SwitchColours, height=75, windowHeight=25)
         self.menuButtons.append(self.colourButton)
-        self.timerToggle = ToggleButton(self.main.isTimerEnabled, self.BOARDWIDTH -50, 220, p.Color("Blue"), p.Color("Red"), self.screen, self.main.OnTimerButtonClick, height=32, width = 32)
+        self.timerToggle = ToggleButton(self.main.isTimerEnabled, self.BOARDWIDTH -55, 210, p.Color("Blue"), p.Color("Red"), self.screen, self.main.OnTimerButtonClick, height=40, width = 40)
         self.menuButtons.append(self.timerToggle)
         self.threadButton = Button("Threaded: True", self.BOARDWIDTH - 160, 325, p.Color("Blue"), self.screen,"Run the AI in a separate thread", self.main.switchThreading, height=75, windowHeight=25)
         self.menuButtons.append(self.threadButton)
@@ -513,7 +513,7 @@ class UI:
         # Create the slider
         self.timeSlider = Slider(self.screen, self.BOARDWIDTH - 175, 310, 150, 20, min=10, max=120, step=1, colour=p.Color("white"))
         # Create the output box for the slider
-        self.timeOutput = TextBox(self.screen, self.BOARDWIDTH - 60, 265, 50, 40, fontSize=30)
+        self.timeOutput = TextBox(self.screen, self.BOARDWIDTH - 65, 260, 50, 40, fontSize=30)
         self.timeOutput.disable()
 
     #Draws the game screen - the board and pieces
@@ -528,17 +528,20 @@ class UI:
         self.drawPieces(game)
         #Draw the panel next to the board
         self.drawPanel()
+        # Generate and draw the button
+        self.hintButton.draw()
+        self.exitButton.draw()
         #Make sure that the buttons detecting clicks are the right buttons
         self.currentButtonsToUpdate = self.gameButtons
 
 
     #Draws the panel containing the back button and a list of possible patterns
-    def drawPanel(self):
+    def drawPanel(self, drawTimer = True):
         #Draw the panel
         p.draw.rect(self.screen, p.Color("gray"), p.Rect(370, 10, 240, 420))
 
         #if online game, draw the panel that shows whose go it is and which colour you are
-        if (self.main.Online):
+        if (self.main.Online and drawTimer):
             #Draw the black background
             p.draw.rect(self.screen, p.Color("black"), p.Rect(375, 20, 230, 50))
             #Draw the text saying which colour you are
@@ -563,16 +566,16 @@ class UI:
             text = font.render("Patterns:", 1, (255, 255, 255))
             self.screen.blit(text, (432, 69))
         #Draw the timer
-        elif self.main.isTimerEnabled[0]:
-            p.draw.rect(self.screen, p.Color("black"), p.Rect(375, 20, 60, 70))
+        elif self.main.isTimerEnabled[0] and drawTimer:
+            p.draw.rect(self.screen, p.Color("black"), p.Rect(375, 20, 60, 70), border_radius=5)
             #Draw the text saying timer
-            font = p.font.SysFont("arial", 20)
+            font = p.font.SysFont("", 25)
             text = font.render("Timer", 1, (255, 255, 255))
-            self.screen.blit(text, (383, 20))
+            self.screen.blit(text, (383, 24))
             #Draw the timer value
-            font = p.font.SysFont("arial", 45)
+            font = p.font.SysFont("", 55)
             text = font.render(str(int(self.main.timerValue)), 1, (255, 0, 0))
-            self.screen.blit(text, (405 - round(text.get_width() / 2), 37))
+            self.screen.blit(text, (405 - round(text.get_width() / 2), 45))
             # Draw the title of the panel
             font = p.font.SysFont("arial", 50)
             text = font.render("Patterns:", 1, (255, 255, 255))
@@ -588,7 +591,7 @@ class UI:
         #Draw the patterns
         #Pattern 1
         #Draw the background
-        p.draw.rect(self.screen, p.Color("white"), p.Rect(380, 110, 220, 40))
+        p.draw.rect(self.screen, p.Color("white"), p.Rect(380, 110, 220, 40), border_radius=5)
         #Draw the pattern
         p.draw.circle(self.screen, p.Color("grey"), (410, 130), self.SLOTSIZE / 2)
         p.draw.circle(self.screen, p.Color("red"), (410, 130), self.PEGSIZE / 2)
@@ -605,7 +608,7 @@ class UI:
 
         # Pattern 2
         # Draw the background
-        p.draw.rect(self.screen, p.Color("white"), p.Rect(380, 170, 220, 40))
+        p.draw.rect(self.screen, p.Color("white"), p.Rect(380, 170, 220, 40), border_radius=5)
         # Draw the pattern
         p.draw.circle(self.screen, p.Color("grey"), (410, 190), self.SLOTSIZE / 2)
         p.draw.circle(self.screen, p.Color("red"), (410, 190), self.PEGSIZE / 2)
@@ -621,7 +624,7 @@ class UI:
 
         # Pattern 3
         # Draw the background
-        p.draw.rect(self.screen, p.Color("white"), p.Rect(380, 230, 220, 40))
+        p.draw.rect(self.screen, p.Color("white"), p.Rect(380, 230, 220, 40), border_radius=5)
         # Draw the pattern
         p.draw.circle(self.screen, p.Color("grey"), (410, 250), self.SLOTSIZE / 2)
         p.draw.circle(self.screen, p.Color("red"), (410, 250), self.PEGSIZE / 2)
@@ -637,10 +640,6 @@ class UI:
         p.draw.circle(self.screen, p.Color("grey"), (570, 250), self.SLOTSIZE / 2)
         p.draw.circle(self.screen, p.Color("red"), (570, 250), self.PEGSIZE / 2)
 
-
-        #Generate and draw the button
-        self.hintButton.draw()
-        self.exitButton.draw()
 
     #Draws the board on the screen
     def drawBoard(self):
@@ -698,29 +697,22 @@ class UI:
         # Draw main board
         for r in range(self.amountOfSlots):
             for c in range(self.amountOfSlots):
-                #Draw red cylinders
+                tempColour = "yellow"
+                if (game.cylinderBoard[r][c][0] == "r"):
+                    tempColour = "red"
                 # Draw full cylinder
-                if game.cylinderBoard[r][c] == "rc":
-                    p.draw.circle(self.screen, p.Color("red"), ((c * self.SLOTSIZE) + self.SLOTSIZE*1.5, (r * self.SLOTSIZE) + 5 * self.SLOTSIZE / 2),self.SLOTSIZE / 2)
+                if game.cylinderBoard[r][c][1] == "c":
+                    p.draw.circle(self.screen, p.Color(tempColour), ((c * self.SLOTSIZE) + self.SLOTSIZE*1.5, (r * self.SLOTSIZE) + 5 * self.SLOTSIZE / 2),self.SLOTSIZE / 2)
                 # Draw hollow cylinder
-                elif game.cylinderBoard[r][c] == "rh":
-                    p.draw.circle(self.screen, p.Color("red"), ((c * self.SLOTSIZE) + self.SLOTSIZE*1.5, (r * self.SLOTSIZE) + 5 * self.SLOTSIZE / 2),self.SLOTSIZE / 2)
+                elif game.cylinderBoard[r][c][1] == "h":
+                    p.draw.circle(self.screen, p.Color(tempColour), ((c * self.SLOTSIZE) + self.SLOTSIZE*1.5, (r * self.SLOTSIZE) + 5 * self.SLOTSIZE / 2),self.SLOTSIZE / 2)
                     p.draw.circle(self.screen, p.Color("grey"), ((c * self.SLOTSIZE) + self.SLOTSIZE*1.5, (r * self.SLOTSIZE) + 5 * self.SLOTSIZE / 2),self.PEGSIZE / 2)
-                #Draw yellow cylinders
-                # Draw full cylinder
-                if game.cylinderBoard[r][c] == "yc":
-                    p.draw.circle(self.screen, p.Color("yellow"), ((c * self.SLOTSIZE) + self.SLOTSIZE*1.5, (r * self.SLOTSIZE) + 5 * self.SLOTSIZE / 2), self.SLOTSIZE / 2)
-                # Draw hollow cylinder
-                elif game.cylinderBoard[r][c] == "yh":
-                    p.draw.circle(self.screen, p.Color("yellow"), ((c * self.SLOTSIZE) + self.SLOTSIZE*1.5, (r * self.SLOTSIZE) + 5 * self.SLOTSIZE / 2),self.SLOTSIZE / 2)
-                    p.draw.circle(self.screen, p.Color("grey"), ((c * self.SLOTSIZE) + self.SLOTSIZE*1.5, (r * self.SLOTSIZE) + 5 * self.SLOTSIZE / 2),self.PEGSIZE / 2)
+                tempColour = "yellow"
+                if (game.pegBoard[r][c][0] == "r"):
+                    tempColour = "red"
                 # Draw pegs
-                #red
-                if game.pegBoard[r][c] == "rp":
-                    p.draw.circle(self.screen, p.Color("red"),((c * self.SLOTSIZE) + self.SLOTSIZE * 1.5, (r * self.SLOTSIZE) + 5 * self.SLOTSIZE / 2),self.PEGSIZE / 2)
-                #yellow
-                if game.pegBoard[r][c] == "yp":
-                    p.draw.circle(self.screen, p.Color("yellow"), ((c * self.SLOTSIZE) + self.SLOTSIZE*1.5, (r * self.SLOTSIZE) + 5 * (self.SLOTSIZE / 2)),self.PEGSIZE / 2)
+                if game.pegBoard[r][c][1] == "p":
+                    p.draw.circle(self.screen, p.Color(tempColour),((c * self.SLOTSIZE) + self.SLOTSIZE * 1.5, (r * self.SLOTSIZE) + 5 * self.SLOTSIZE / 2),self.PEGSIZE / 2)
 
         # draw red's storage
         for r in range(2):
@@ -768,12 +760,12 @@ class UI:
     def drawIntroScreen(self):
         self.screen.fill(p.Color("grey"))
         # Draw the title of the screen
-        font = p.font.SysFont("arial", 50)
+        font = p.font.SysFont("", 65)
         text = font.render("5ive", 1, (255, 255, 255))
         self.screen.blit(text, ((self.screen.get_width()/2) - round(text.get_width() / 2), 10))
 
         #Draw the appropriate difficulty underneath the slider
-        font = p.font.SysFont("arial", 25)
+        font = p.font.SysFont("", 32)
         if self.difficultySlider.getValue() == 1:
             text = font.render("Easy", 1, (255, 255, 255))
         elif self.difficultySlider.getValue() == 2:
@@ -782,7 +774,7 @@ class UI:
             text = font.render("Hard", 1, (255, 255, 255))
         self.screen.blit(text, ((self.BOARDWIDTH / 2) - round(text.get_width() / 2), 230))
 
-        font = p.font.SysFont("arial", 25)
+        font = p.font.SysFont("", 27)
 
 
         # Set the slider label to the slider's value
@@ -791,8 +783,8 @@ class UI:
         self.screen.blit(text, ((self.BOARDWIDTH - 195), 220))
 
         if (self.main.isTimerEnabled[0]):
-            text = font.render("Timer Duration:", 1, (255, 255, 255))
-            self.screen.blit(text, ((self.BOARDWIDTH - 205), 270))
+            text = font.render("Duration:", 1, (255, 255, 255))
+            self.screen.blit(text, ((self.BOARDWIDTH - 150), 269))
             self.timeSlider.draw()
             self.timeOutput.draw()
 
@@ -891,66 +883,7 @@ Hollow and full cylinders are equivalent in formations, even if an opponent's pe
 
         self.drawTextOnMultipleLines((365,420), rules, (15,24), (255,255,255), font)
 
-
-
-        # Draw the panel
-        p.draw.rect(self.screen, p.Color("gray"), p.Rect(380, 10, 234, 420))
-        # Draw the title of the panel
-        font = p.font.SysFont("arial", 35)
-        text = font.render("Patterns:", 1, (255, 255, 255))
-        self.screen.blit(text, (498 - round(text.get_width() / 2), 30))
-
-        # Draw the patterns
-        # Pattern 1
-        # Draw the background
-        p.draw.rect(self.screen, p.Color("white"), p.Rect(388, 100, 220, 40))
-        # Draw the pattern
-        p.draw.circle(self.screen, p.Color("grey"), (418, 120), self.SLOTSIZE / 2)
-        p.draw.circle(self.screen, p.Color("red"), (418, 120), self.PEGSIZE / 2)
-
-        p.draw.circle(self.screen, p.Color("red"), (458, 120), self.SLOTSIZE / 2)
-
-        p.draw.circle(self.screen, p.Color("grey"), (498, 120), self.SLOTSIZE / 2)
-        p.draw.circle(self.screen, p.Color("red"), (498, 120), self.PEGSIZE / 2)
-
-        p.draw.circle(self.screen, p.Color("red"), (538, 120), self.SLOTSIZE / 2)
-
-        p.draw.circle(self.screen, p.Color("grey"), (578, 120), self.SLOTSIZE / 2)
-        p.draw.circle(self.screen, p.Color("red"), (578, 120), self.PEGSIZE / 2)
-
-        # Pattern 2
-        # Draw the background
-        p.draw.rect(self.screen, p.Color("white"), p.Rect(388, 180, 220, 40))
-        # Draw the pattern
-        p.draw.circle(self.screen, p.Color("grey"), (418, 200), self.SLOTSIZE / 2)
-        p.draw.circle(self.screen, p.Color("red"), (418, 200), self.PEGSIZE / 2)
-
-        p.draw.circle(self.screen, p.Color("red"), (458, 200), self.SLOTSIZE / 2)
-
-        p.draw.circle(self.screen, p.Color("red"), (498, 200), self.SLOTSIZE / 2)
-
-        p.draw.circle(self.screen, p.Color("red"), (538, 200), self.SLOTSIZE / 2)
-
-        p.draw.circle(self.screen, p.Color("grey"), (578, 200), self.SLOTSIZE / 2)
-        p.draw.circle(self.screen, p.Color("red"), (578, 200), self.PEGSIZE / 2)
-
-        # Pattern 3
-        # Draw the background
-        p.draw.rect(self.screen, p.Color("white"), p.Rect(388, 260, 220, 40))
-        # Draw the pattern
-        p.draw.circle(self.screen, p.Color("grey"), (418, 280), self.SLOTSIZE / 2)
-        p.draw.circle(self.screen, p.Color("red"), (418, 280), self.PEGSIZE / 2)
-
-        p.draw.circle(self.screen, p.Color("grey"), (458, 280), self.SLOTSIZE / 2)
-        p.draw.circle(self.screen, p.Color("red"), (458, 280), self.PEGSIZE / 2)
-
-        p.draw.circle(self.screen, p.Color("red"), (498, 280), self.SLOTSIZE / 2)
-
-        p.draw.circle(self.screen, p.Color("grey"), (538, 280), self.SLOTSIZE / 2)
-        p.draw.circle(self.screen, p.Color("red"), (538, 280), self.PEGSIZE / 2)
-
-        p.draw.circle(self.screen, p.Color("grey"), (578, 280), self.SLOTSIZE / 2)
-        p.draw.circle(self.screen, p.Color("red"), (578, 280), self.PEGSIZE / 2)
+        self.drawPanel(False)
 
         # Generate and draw the button
         self.backButton.draw()
@@ -988,7 +921,7 @@ Hollow and full cylinders are equivalent in formations, even if an opponent's pe
 
 #Represents a clickable, rectangular button with a text overlay
 class Button:
-    def __init__(self, text, x, y, color, win, explanationText, functionToRun, width = 150, height = 100, showWindowAbove=False, windowHeight=0):
+    def __init__(self, text, x, y, color, win, explanationText, functionToRun, width = 150, height = 100, showWindowAbove=False, windowHeight=0, outline = True):
         #The text displayed in the center of the button
         self.text = text
         #The coordinates of the button
@@ -998,6 +931,7 @@ class Button:
         self.width = width
         self.height = height
         #The color of the button
+        self.storedColor = color
         self.color = color
         #The text shown when the mouse hovers on the button
         self.explanationText = explanationText
@@ -1007,6 +941,7 @@ class Button:
         self.functionToRun = functionToRun
         #The window the button is drawn on
         self.win = win
+        self.outline = outline
         #The time the hover text has been shown for (-1 means it isn't being shown)
         self.windowShownTime = -1
         if windowHeight == 0:
@@ -1019,10 +954,14 @@ class Button:
     def draw(self):
         #Drawing the button
         #draw a rectangle
-        p.draw.rect(self.win, self.color, (self.x, self.y, self.width, self.height))
+        if (self.outline):
+            p.draw.rect(self.win, p.Color("black"), (self.x, self.y, self.width, self.height), border_radius=5)
+            p.draw.rect(self.win, self.color, (self.x+2, self.y+2, self.width-4, self.height-4), border_radius=5)
+        else:
+            p.draw.rect(self.win, self.color, (self.x, self.y, self.width, self.height), border_radius=5)
         font = p.font.SysFont("comicsans", 20)
         #Draw the text on the rectangle, centered
-        self.drawTextOnMultipleLines((self.width, self.height), self.text, (self.x,self.y),p.Color("white") , font)
+        self.drawTextOnMultipleLines((self.width, self.height), self.text, (self.x,self.y),p.Color("white") , ("", 28))
         #Run checks to detect whether the hover window needs to be rendered
         if self.windowShownTime > 0 and time.time() < self.windowShownTime + 0.1:
             #Show the window
@@ -1030,32 +969,33 @@ class Button:
         else:
             #The window will stop being shown
             self.windowShownTime = -1
+        self.color = self.storedColor
 
     def IsCoordInside(self, pos):
         #Get each coord from the tuple
         x1 = pos[0]
         y1 = pos[1]
         #Is it inside the boundaries of the button?
-        if self.x <= x1 <= self.x + self.width and self.y <= y1 <= self.y + self.height:
-            return True
-        else:
-            return False
+        return self.x <= x1 <= self.x + self.width and self.y <= y1 <= self.y + self.height
 
     def ShowTextWindow(self, fromClick=False):
         #Draw the hover text window above or below the button
         if not self.showWindowAbove:
             #Draw the rectangular window
-            p.draw.rect(self.win, p.Color("red"), (self.x, self.y-self.windowHeight, self.width, self.windowHeight))
-            font = p.font.SysFont("comicsans", 16)
+            p.draw.rect(self.win, (0, 0, 0), (self.x, self.y - self.windowHeight, self.width, self.windowHeight),
+                        border_radius=5)
+            p.draw.rect(self.win, (150, 150, 150), (self.x+1, self.y - self.windowHeight+1, self.width-2, self.windowHeight-2),
+                        border_radius=5)
             # Draw the explanatory text
-            self.drawTextOnMultipleLines((self.width, self.windowHeight), self.explanationText, (self.x,self.y-self.windowHeight),p.Color("white") , font, False)
+            self.drawTextOnMultipleLines((self.width-4, self.windowHeight-4), self.explanationText, (self.x+2,self.y-self.windowHeight+2),p.Color("white") , ("comicsans", 16), False)
 
         else:
             # Draw the rectangular window
-            p.draw.rect(self.win, p.Color("red"), (self.x, self.y+self.height, self.width, self.windowHeight))
-            font = p.font.SysFont("comicsans", 16)
+            p.draw.rect(self.win, (0, 0, 0), (self.x, self.y + self.height, self.width, self.windowHeight),
+                        border_radius=5)
+            p.draw.rect(self.win, (150, 150, 150), (self.x + 1, self.y+self.height + 1, self.width-2, self.windowHeight-2), border_radius=5)
             #Draw the explanatory text
-            self.drawTextOnMultipleLines((self.width, self.windowHeight), self.explanationText, (self.x, self.y+self.height), p.Color("white") , font, False)
+            self.drawTextOnMultipleLines((self.width-4, self.windowHeight-4), self.explanationText, (self.x+2, self.y+self.height+2), p.Color("white") , ("comicsans", 16), False)
         #Update the window shown time to start the countdown
         if fromClick:
             self.windowShownTime = time.time()
@@ -1068,15 +1008,56 @@ class Button:
     def OnHover(self):
         #Show the explanatory text window
         self.ShowTextWindow(True)
+        if self.color == p.Color("blue"):
+            self.color = (60, 120, 255)
+        elif self.color == p.Color("red"):
+            self.color = (255, 100, 100)
+        elif self.color == p.Color("green"):
+            self.color = (100, 255, 100)
 
-    #Pygame does not default support rendering text across multiple lines so I am using this function to do so.
-    def drawTextOnMultipleLines(self, size, text, position, color, font, centerHeight=True):
+    # Pygame does not default support rendering text across multiple lines so I am using this function to do so.
+    def CheckTextOnMultipleLines(self, size, text, position, font):
         # An array of lists of the words in each line.
         words = []
+        sysFont = p.font.SysFont(font[0], font[1])
         for word in text.splitlines():
             words.append(word.split(" "))
         # The width of a space.
-        space = font.size(" ")[0]
+        space = sysFont.size(" ")[0]
+        width = size[0]
+        x = 0
+        y = position[1]
+        # Loop through each line
+        for line in words:
+            # Loop through each word in the line
+            for word in line:
+                wordRendered = sysFont.render(word, 0, p.Color("black"))
+                wordWidth = wordRendered.get_size()[0]
+                wordHeight = wordRendered.get_size()[1]
+                if x + wordWidth >= width:
+                    # Reset the x.coordinate to the far left
+                    x = 0
+                    # Set the y coordinate to that of the next row
+                    y += wordHeight
+                x += wordWidth + space
+            # Reset the x coordinate to the far left
+            x = position[0]
+            # Set the y coordinate to that of the next row.
+            y += wordHeight
+        if (y > position[1] + size[1]):
+            return self.CheckTextOnMultipleLines(size, text, position, (font[0], font[1]-1))
+        else:
+            return font[1]
+    #Pygame does not default support rendering text across multiple lines so I am using this function to do so.
+    def drawTextOnMultipleLines(self, size, text, position, color, font, centerHeight=True):
+        resizedFont = (font[0], self.CheckTextOnMultipleLines(size, text, position, font))
+        # An array of lists of the words in each line.
+        words = []
+        sysFont = p.font.SysFont(resizedFont[0], resizedFont[1])
+        for word in text.splitlines():
+            words.append(word.split(" "))
+        # The width of a space.
+        space = sysFont.size(" ")[0]
         width = size[0]
         x = 0
         y = position[1]
@@ -1084,7 +1065,7 @@ class Button:
         for line in words:
             #Loop through each word in the line
             for word in line:
-                wordRendered = font.render(word, 0, color)
+                wordRendered = sysFont.render(word, 0, color)
                 wordWidth = wordRendered.get_size()[0]
                 wordHeight = wordRendered.get_size()[1]
                 if x + wordWidth >= width:
@@ -1131,10 +1112,10 @@ class ToggleButton:
         p.draw.rect(self.win, p.Color("black"), (self.x, self.y, self.width, self.height))
         font = p.font.SysFont("comicsans", 16)
         if (self.value[0]):
-            p.draw.rect(self.win, self.trueColor, (self.x+1, self.y+1, self.width-2, self.height-2))
+            p.draw.rect(self.win, self.trueColor, (self.x+2, self.y+2, self.width-4, self.height-4))
             self.drawTextOnMultipleLines((self.width, self.height), "Y", (self.x, self.y), p.Color("white"), font)
         else:
-            p.draw.rect(self.win, self.falseColor, (self.x+1, self.y+1, self.width-2, self.height-2))
+            p.draw.rect(self.win, self.falseColor, (self.x+2, self.y+2, self.width-4, self.height-4))
             self.drawTextOnMultipleLines((self.width, self.height), "N", (self.x, self.y), p.Color("white"), font)
 
     def IsCoordInside(self, pos):
@@ -1142,10 +1123,7 @@ class ToggleButton:
         x1 = pos[0]
         y1 = pos[1]
         #Is it inside the boundaries of the button?
-        if self.x <= x1 <= self.x + self.width and self.y <= y1 <= self.y + self.height:
-            return True
-        else:
-            return False
+        return (self.x <= x1 <= self.x + self.width) and (self.y <= y1 <= self.y + self.height)
 
 
     #Run when the button is clicked
