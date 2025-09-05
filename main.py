@@ -1,3 +1,4 @@
+#Imports
 from AI import AI
 import Game as g
 import pygame_widgets
@@ -7,6 +8,7 @@ import pygame as p
 import time
 from Game import Network
 import threading
+
 
 class Main:
     def __init__(self):
@@ -383,7 +385,6 @@ class Main:
                                     self.clicks = []
                                     #skip to the next event
                                     continue
-
                             elif 8 < row < 11:
                                 # Compensate for the slots in storage being centered differently
                                 col = ((location[0] + (self.UI.SLOTSIZE // 2)) // self.UI.SLOTSIZE) - 1

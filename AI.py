@@ -3,7 +3,7 @@ import random
 from Game import Move
 
 
-#Generates a good move based of the board state
+#Generates a good move based off the board state
 class AI:
     def __init__(self, AIDifficulty):
         #The depth of moves the NegaMax algorithm searches to

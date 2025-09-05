@@ -1,5 +1,6 @@
 import cx_Freeze
 
+#Config script for converting program to an executable
 executables = [cx_Freeze.Executable("main.py")]
 
 cx_Freeze.setup(

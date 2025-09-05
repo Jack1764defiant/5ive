@@ -3,7 +3,7 @@ import pickle
 import os
 
 
-#Represents a game, handles making moves
+#Represents a game, handles making moves, checking for victory
 class Game:
     def __init__(self):
         #y stands for yellow, r for red.
